@@ -5,9 +5,12 @@ Debug node code from right within the editor!
 We all love (and couldn't live without) the chrome inspector, but sometimes you just don't want
 to open up your whole source tree in another browser.
 
-Uses [node-inspector][1] under the hood, via [debugger-api][2]
+Uses [node-inspector][1] under the hood, via a thin adapter layer provided by [debugger-api][2].
 
+![](screenshot.gif)
 
+[1]:node-inspector/node-inspector
+[2]:anandthakker/debugger-api
 
 # Roadmap
 
