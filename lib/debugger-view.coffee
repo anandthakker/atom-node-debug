@@ -40,21 +40,20 @@ class DebuggerView extends View
 
   @content: ->
     @div class: "tool-panel panel-bottom padded atom-node-debug--ui", =>
-      @div class: "inset-panel", =>
-        @div class: "panel-heading", =>
-          @div class: 'btn-toolbar pull-left', =>
-            @div class: 'btn-group', =>
-              @button 'Detach',
-                click: 'endSession'
-                class: 'btn'
-          @div class: 'btn-toolbar pull-right', =>
-            @div class: 'btn-group', =>
-              @subview 'continue', new CommandButtonView('continue')
-              @subview 'stepOver', new CommandButtonView('step-over')
-              @subview 'stepInto', new CommandButtonView('step-into')
-              @subview 'stepOut', new CommandButtonView('step-out')
-          @span 'Debugging'
-        @div class: "panel-body padded", 'Debugger starting', outlet: 'console'
+      @div class: "panel-heading", =>
+        @div class: 'btn-toolbar pull-left', =>
+          @div class: 'btn-group', =>
+            @button 'Detach',
+              click: 'endSession'
+              class: 'btn'
+        @div class: 'btn-toolbar pull-right', =>
+          @div class: 'btn-group', =>
+            @subview 'continue', new CommandButtonView('continue')
+            @subview 'stepOver', new CommandButtonView('step-over')
+            @subview 'stepInto', new CommandButtonView('step-into')
+            @subview 'stepOut', new CommandButtonView('step-out')
+        @span 'Debugging'
+      @div class: "panel-body padded and-console", outlet: 'console'
 
   initialize: (serializeState) ->
     @registerCommand 'atom-node-debug:debug-current-file',
@@ -108,9 +107,14 @@ class DebuggerView extends View
       file = @editor.getPath()
       port = 5858 #umm... actually look for one?
       @childprocess = spawn("node",
-        ["--debug-brk=" + port,file ])
-      @childprocess.stderr.once "data", -> startDebug(port)
+        params=["--debug-brk=" + port,file ])
+      @childprocess.stderr.once 'data', -> startDebug(port)
 
+      cmdstr = 'node' + params.join ' '
+      @childprocess.stderr.on 'data', (data) =>
+        @console.append "<div>#{data}</div>"
+      @childprocess.stdout.on 'data', (data) =>
+        @console.append "<div>#{data}</div>"
 
   activePaneItemChanged: ->
     return unless @bug?
@@ -167,6 +171,7 @@ class DebuggerView extends View
     
 
   endSession: ->
+    @destroyAllMarkers()
     @childprocess?.kill()
     @bug?.close()
     @detach()
@@ -177,5 +182,4 @@ class DebuggerView extends View
   # Tear down any state and detach
   destroy: ->
     @localCommandMap = null
-    @destroyAllMarkers()
     @endSession()
