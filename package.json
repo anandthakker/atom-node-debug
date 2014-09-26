@@ -2,14 +2,14 @@
   "name": "atom-node-debug",
   "main": "./lib/atom-node-debug",
   "version": "0.0.0",
-  "description": "A short description of your package",
+  "description": "Debug node code from right within the editor!",
   "activationEvents": [
     "cursor:moved"
   ],
-  "repository": "https://github.com/atom/atom-node-debug",
+  "repository": "https://github.com/anandthakker/atom-node-debug",
   "license": "MIT",
   "engines": {
-    "atom": ">0.50.0"
+    "atom": ">0.129.0"
   },
   "dependencies": {
     "debug": "^2.0.0",
