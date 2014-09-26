@@ -7,10 +7,10 @@ to open up your whole source tree in another browser.
 
 Uses [node-inspector][1] under the hood, via a thin adapter layer provided by [debugger-api][2].
 
-![](screenshot.gif)
+![](https://raw.githubusercontent.com/anandthakker/atom-node-debug/master/screenshot.gif)
 
-[1]:node-inspector/node-inspector
-[2]:anandthakker/debugger-api
+[1]:https://github.com/node-inspector/node-inspector
+[2]:https://github.com/anandthakker/debugger-api
 
 # Roadmap
 
