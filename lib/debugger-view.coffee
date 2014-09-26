@@ -163,7 +163,6 @@ class DebuggerView extends View
           class: 'and-current-pointer--top'
     
     for bp in @getBreakpoints()
-      console.log bp
       {locations: [{lineNumber, scriptPath}]} = bp
       continue unless scriptPath is editorPath
       marker = @createMarker(lineNumber, scriptPath)
@@ -239,7 +238,6 @@ class DebuggerView extends View
         pathname: scriptPath
         slashes: true
       lineNumber: lineNumber
-    console.log bp
     @bug.setBreakpointByUrl(bp, (err, {breakpointId, locations})=>
       if (err?) then console.error(err)
       else if not locations?[0]? then console.error("Couldn't set breakpoint.")
