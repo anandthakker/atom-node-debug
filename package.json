@@ -1,0 +1,18 @@
+{
+  "name": "atom-node-debug",
+  "main": "./lib/atom-node-debug",
+  "version": "0.0.0",
+  "description": "A short description of your package",
+  "activationEvents": [
+    "atom-node-debug:connect"
+  ],
+  "repository": "https://github.com/atom/atom-node-debug",
+  "license": "MIT",
+  "engines": {
+    "atom": ">0.50.0"
+  },
+  "dependencies": {
+    "debug": "^2.0.0",
+    "debugger-api": "^0.1.1"
+  }
+}
