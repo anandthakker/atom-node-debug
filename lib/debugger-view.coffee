@@ -1,33 +1,90 @@
-{View, Range, Point} = require 'atom'
 debug = require('debug')
-# debug.enable('node-inspector-api')
-DebuggerApi = require('debugger-api')
+debug.enable('node-inspector-api')
 
-#testing only
+_ = require 'underscore-plus'
+{View, Range, Point, $$} = require 'atom'
+DebuggerApi = require('debugger-api')
 spawn = require("child_process").spawn
+
+class CommandButtonView extends View
+  @content: =>
+    @button
+      class: 'btn'
+      click: 'triggerMe'
+  
+  commandsReady: ->
+    [@kb] = atom.keymaps.findKeyBindings(command: @commandName)
+    [@command] = (atom.commands
+    .findCommands
+      target: atom.workspaceView
+    .filter (cmd) => cmd.name is @commandName)
+    
+    [kb,cmd,disp] = [@kb, @commandName, @command?.displayName]
+    if kb?
+      @append($$ ->
+        @kbd _.humanizeKeystroke(kb.keystrokes), class: ''
+        @span (disp ? cmd).split(':').pop()
+      )
+  
+  triggerMe: ->
+    @parentView.triggerCommand(@commandName)
+    
+  initialize: (suffix)->
+    @commandName = 'atom-node-debug:'+suffix
+
 
 module.exports =
 class DebuggerView extends View
+
   @content: ->
-    @div class: "tool-panel panel-bottom padded", =>
+    @div class: "tool-panel panel-bottom padded atom-node-debug--ui", =>
       @div class: "inset-panel", =>
         @div class: "panel-heading", =>
           @div class: 'btn-toolbar pull-left', =>
             @div class: 'btn-group', =>
-              @button class: 'btn', 'Detach', click: 'endSession'
+              @button 'Detach',
+                click: 'endSession'
+                class: 'btn'
           @div class: 'btn-toolbar pull-right', =>
             @div class: 'btn-group', =>
-              @button class: 'btn', 'Continue', click: 'resume'
-              @button class: 'btn', 'Step Over', click: 'stepOver'
-              @button class: 'btn', 'Step Into', click: 'stepInto'
-              @button class: 'btn', 'Step Out', click: 'stepOut'
+              @subview 'continue', new CommandButtonView('continue')
+              @subview 'stepInto', new CommandButtonView('step-into')
+              @subview 'stepOver', new CommandButtonView('step-over')
+              @subview 'stepOut', new CommandButtonView('step-out')
           @span 'Debugging'
         @div class: "panel-body padded", 'Debugger starting', outlet: 'console'
 
-  startSession: (port)->
+  initialize: (serializeState) ->
+    @registerCommand 'atom-node-debug:debug-current-file',
+    '.editor', =>@startSession()
+    @registerCommand 'atom-node-debug:step-into',
+    '.atom-node-debug--paused', => @bug.stepInto()
+    @registerCommand 'atom-node-debug:step-over',
+    '.atom-node-debug--paused', => @bug.stepOver()
+    @registerCommand 'atom-node-debug:step-out',
+    '.atom-node-debug--paused', => @bug.stepOut()
+    @registerCommand 'atom-node-debug:continue',
+    '.atom-node-debug--paused', =>
+      @bug.resume()
+      @bug.once('Debugger.resumed', => @decoration.destroy())
+
+    btn.commandsReady() for btn in [@continue,@stepOver,@stepOut,@stepInto]
+
+  localCommandMap: {}
+  registerCommand: (name, filter, callback) ->
+    atom.workspaceView.command name, filter, callback
+    @localCommandMap[name] = callback
+  triggerCommand: (name)->
+    @localCommandMap[name]()
+
+  startSession: (port) ->
     startDebug = (port) =>
       @bug = new DebuggerApi({debugPort: port})
       @bug.enable()
+      @bug.on('Debugger.resumed', ->
+        atom.workspaceView
+        .removeClass('atom-node-debug--paused')
+      )
       @bug.on('Debugger.paused', (breakInfo)=>
         location = breakInfo.callFrames[0].location
         console.log location
@@ -38,6 +95,8 @@ class DebuggerView extends View
         TODO:
         find (or open!) editor by script path & switch to it.
         ###
+        atom.workspaceView
+        .addClass('atom-node-debug--paused')
         
         line = @editor.lineTextForBufferRow(location.lineNumber)
         @console.text("#{location.lineNumber}: #{line}")
@@ -51,9 +110,9 @@ class DebuggerView extends View
           )
         else @marker.setBufferRange(range)
         
-        decoration = @editor.decorateMarker(@marker,
+        @decoration = @editor.decorateMarker(@marker,
           type: 'line',
-          class: 'highlight-info'
+          class: 'and-breakpoint--current'
         )
         
         return
@@ -74,19 +133,16 @@ class DebuggerView extends View
     
     atom.workspaceView.prependToBottom(this)
 
-  endSession: -> @bug.close()
-  resume: -> @bug.resume()
-  stepOver: -> @bug.stepOver()
-  stepInto: -> @bug.stepInto()
-  stepOut: -> @bug.stepOut()
-  
-  initialize: (serializeState) ->
+  endSession: ->
+    @childprocess?.kill()
+    @bug?.close()
     
   # Returns an object that can be retrieved when package is activated
   serialize: ->
 
   # Tear down any state and detach
   destroy: ->
+    @localCommandMap = null
     @childprocess?.kill()
-    @debugSession?.close()
+    @bug?.close()
     @detach()

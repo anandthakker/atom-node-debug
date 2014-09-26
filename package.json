@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "description": "A short description of your package",
   "activationEvents": [
-    "atom-node-debug:connect"
+    "cursor:moved"
   ],
   "repository": "https://github.com/atom/atom-node-debug",
   "license": "MIT",
@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "debug": "^2.0.0",
-    "debugger-api": "^0.1.1"
+    "debugger-api": "^0.1.1",
+    "underscore-plus": "^1.5.1"
   }
 }

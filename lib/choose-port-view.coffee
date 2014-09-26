@@ -69,8 +69,12 @@ class ChoosePortView extends View
       @storeFocusedElement()
       atom.workspaceView.append(this)
       @message.html """
-      <p>Choose a port to attach to.</p>
-      <p>Make sure node is debugging:<br>
-         <code>node --debug-brk=PORT</code></p>
+      <p>
+        Enter port of running debugger or leave blank to debug current file.
+      </p>
+      <p>
+        If the former, make sure node is debugging:<br>
+        <code>node --debug-brk=PORT</code>
+      </p>
       """
       @miniEditor.focus()

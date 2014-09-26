@@ -4,6 +4,13 @@
 // for a full listing of what's available.
 @import "ui-variables";
 
-.atom-node-debug {
-  
+.atom-node-debug--paused {
+  .and-breakpoint {
+  }
+  .and-breakpoint--current {
+    background-color: darken(@background-color-info, 33%);
+    border-color: darken(@background-color-info, 20%);
+    border-style: solid;
+    border-width: 1px 0;
+  }
 }
