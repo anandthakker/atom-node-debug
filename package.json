@@ -2,7 +2,16 @@
   "name": "atom-node-debug",
   "main": "./lib/atom-node-debug",
   "version": "0.1.2",
-  "description": "Debug node code from right within the editor!",
+  "description": "Debug node.js code from right within the editor.",
+  "keywords": [
+    "node",
+    "nodejs",
+    "debug",
+    "debugger",
+    "inspector",
+    "web inspector",
+    "node-inspector"
+  ],
   "activationEvents": [
     "cursor:moved"
   ],
