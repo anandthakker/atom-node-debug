@@ -193,16 +193,22 @@ class DebuggerView extends View
   destroy: ->
     @localCommandMap = null
     @endSession()
+
+  openPath: ({scriptPath, lineNumber}, done)->
+    done() if path.normalize(scriptPath) is path.normalize(@editor.getPath())
+    atom.workspaceView.open(scriptPath).done ->
+      if editorView = atom.workspaceView.getActiveView()
+        position = new Point(lineNumber)
+        editorView.scrollToBufferPosition(position, center: true)
+        editorView.editor.setCursorBufferPosition(position)
+        editorView.editor.moveCursorToFirstCharacterOfLine()
+        @editor = atom.workspace.getActiveEditor()
+      done()
+
     
 
   ###
-  DebuggerApi accessor functions.
-  TODO: extract into a separate model class, so that this view can
-        be reused for other debuggers!
-  ###
-
-  ###
-  Startup
+  Wire up modelly stuff to viewy stuff
   ###
   startDebugger: (port) ->
     @bug = new DebuggerApi({debugPort: port})
@@ -216,17 +222,27 @@ class DebuggerView extends View
     )
     @bug.on('Debugger.paused', (breakInfo)=>
       @setCurrentPause(breakInfo)
-      @updateMarkers()
+      @openPath(@getCurrentPauseLocations()[0], => @updateMarkers())
       atom.workspaceView.addClass('atom-node-debug')
       atom.workspaceView.addClass('and--paused')
       return
     )
 
 
+  ###
+  DebuggerApi accessor functions.  Everything below this point should be
+  ignorant of the View.
+  
+  TODO: extract into a separate model class, so that this view can
+        be reused for other debuggers!
+        Uhh... it was late when I wrote that.  Actually want to say:
+        extract this into the DebuggerApi itself?
+  ###
 
   ###
   Breakpoints
   ###
+  # array of {breakpointId:id, locations:array of {scriptPath, lineNumber}}
   breakpoints: []
   setBreakpoint: ({scriptPath, lineNumber}, done)->
     bp =
@@ -246,13 +262,16 @@ class DebuggerView extends View
         done()
     )
   removeBreakpoint: (id)->
+    @bug.removeBreakpoint({breakpointId: id})
     @breakpoints = @breakpoints.filter ({breakpointId})->breakpointId isnt id
   toggleBreakpoint: ({scriptPath, lineNumber}, done)->
-    bp = @breakpoints.filter (bp)->
-      not (scriptPath is bp.locations[0].scriptPath and
+    console.log scriptPath, lineNumber
+    toRemove = @breakpoints.filter (bp)->
+      console.log bp.locations[0].scriptPath, bp.locations[0].lineNumber
+      (scriptPath is bp.locations[0].scriptPath and
       lineNumber is bp.locations[0].lineNumber)
-    if bp.length < @breakpoints.length
-      @breakpoints = bp
+    if toRemove.length > 0
+      @removeBreakpoint(bp.breakpointId)  for bp in toRemove
       done()
     else
       @setBreakpoint({scriptPath, lineNumber}, done)
@@ -262,21 +281,21 @@ class DebuggerView extends View
     @breakpoints = []
   
   
-
   ###
   Current (paused) point in execution.
   ###
   currentPause: null
-  ###*
-  @return array of {scriptPath, lineNumber}
-  ###
   getCurrentPauseLocations: ->
     (@currentPause?.callFrames ? []).map ({location})=>
       @debuggerToAtomLocation(location)
+  
+  ###* @return {scriptPath, lineNumber} of current pause. ###
   setCurrentPause: (@currentPause)->
+    @debuggerToAtomLocation(@currentPause.callFrames[0].location)
   clearCurrentPause: ->
     @currentPause = null
-    
+
+  ###* @return array of {scriptPath, lineNumber} ###
   debuggerToAtomLocation: ({lineNumber, scriptId}) ->
     scriptPath: path.normalize(@bug.scripts.findScriptByID(scriptId).v8name)
     lineNumber: lineNumber

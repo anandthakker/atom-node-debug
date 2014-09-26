@@ -16,7 +16,7 @@ Uses [node-inspector][1] under the hood, via a thin adapter layer provided by [d
 
 Currently just have step through and breakpoints.  More to come:
 
-- [ ] Open up a new tab when execution leaves current source.
+- [x] Open up a new tab when execution leaves current source.
 - [ ] TESTS! (Although the underlying API has tests, the ui wiring doesn't.)
 - [ ] Breakpoint list
 - [ ] Variables
