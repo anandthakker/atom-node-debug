@@ -1,27 +1,67 @@
-// The ui-variables file is provided by base themes provided by Atom.
-//
-// See https://github.com/atom/atom-dark-ui/blob/master/stylesheets/ui-variables.less
-// for a full listing of what's available.
 @import "ui-variables";
 
-.atom-node-debug--paused {
+@line-color-breakpoint:   darken(@background-color-warning, 50%);
+@border-color-breakpoint: darken(@background-color-warning, 33%);
+@gutter-color-breakpoint: darken(@background-color-warning, 33%);
+
+@line-color-current-pointer:   darken(@background-color-info, 35%);
+@border-color-current-pointer: darken(@background-color-info, 20%);
+@gutter-color-current-pointer: darken(@background-color-info, 20%);
+@gutter-color-current-pointer-stack: darken(@background-color-info, 30%);
+
+
+// Set on any element currently being used/highlighted/etc. by this package.
+// Other more specific styles will be prefixed by 'and', because c'mon: you can't have
+// stuff like atom-node-debug--current-pointer--top *and* a linter max line length.
+.atom-node-debug {
+  
+}
+
+//Set on workspace when exection is paused.
+.and--paused {
+  
+  // decoration for the lines of code anywhere in the call stack
+  // in the currently paused execution state.
   .and-current-pointer {
-    // background-color: darken(@background-color-info, 40%);
-    border-color: darken(@background-color-info, 20%);
+    border-color: @border-color-current-pointer;
+    &.line-number {
+      background-color: @gutter-color-current-pointer-stack
+    }
     border-style: solid;
     border-width: 1px 0;
   }
-  .and-breakpoint {
-    background-color: darken(@background-color-warning, 33%);
-    border-color: darken(@background-color-warning, 20%);
+  
+  // decoration for a breakpoint.
+  .and-breakpoint
+  {
+    background-color: @line-color-breakpoint;
+    &.line-number {
+      background-color: @gutter-color-breakpoint;
+    }
+    border-color: @border-color-breakpoint;
     border-style: solid;
     border-width: 1px 0;
   }
+  
+  // decoration for the line at the *top* of the call stack in the
+  // currently paused exection state.
   .and-current-pointer--top {
-    background-color: darken(@background-color-info, 33%);
-    border-color: darken(@background-color-info, 20%);
+    background-color: @line-color-current-pointer;
+    &.line-number {
+      background-color: @gutter-color-current-pointer;
+    }
+    border-color: @border-color-current-pointer;
     border-style: solid;
     border-width: 1px 0;
+  }
+  
+  // in the gutter, we want breakpoint style to win over current exec. pointer
+  // so that we can still see that the line is a breakpoint.
+  .and-breakpoint.line-number {
+    .and-breakpoint();
+  }
+  .and-breakpoint.and-current-pointer {
+    border-color: @border-color-breakpoint;
   }
   
   .and-console {

@@ -13,7 +13,7 @@
 '.editor[data-grammar~=js]':
   'ctrl-alt-i': 'atom-node-debug:debug-current-file'
   
-'.atom-node-debug--paused':
+'.and--paused':
   'ctrl-alt-cmd-right': 'atom-node-debug:step-into'
   'ctrl-alt-cmd-down': 'atom-node-debug:step-over'
   'ctrl-alt-cmd-left': 'atom-node-debug:step-out'

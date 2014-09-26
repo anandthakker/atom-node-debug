@@ -40,7 +40,7 @@ module.exports =
 class DebuggerView extends View
 
   @content: ->
-    @div class: "tool-panel panel-bottom padded atom-node-debug--ui", =>
+    @div class: "tool-panel panel-bottom padded atom-node-debug and--ui", =>
       @div class: "panel-heading", =>
         @div class: 'btn-toolbar pull-left', =>
           @div class: 'btn-group', =>
@@ -144,34 +144,29 @@ class DebuggerView extends View
     editorPath = @editor.getPath()
     return unless editorPath?
     editorPath = path.normalize(editorPath)
-      
+    
+    # collect up the decorations we'll want by line.
+    map = {} #not really a map, but meh.
     for {lineNumber, scriptPath}, index in @getCurrentPauseLocations()
       continue unless scriptPath is editorPath
-      marker = @createMarker(lineNumber, scriptPath)
-      @editor.decorateMarker marker,
-        type: 'line',
-        class: 'and-current-pointer'
-      @editor.decorateMarker marker,
-        type: 'gutter',
-        class: 'and-current-pointer'
-      if index is 0
-        @editor.decorateMarker marker,
-          type: 'line',
-          class: 'and-current-pointer--top'
-        @editor.decorateMarker marker,
-          type: 'gutter',
-          class: 'and-current-pointer--top'
+      map[lineNumber] ?= ['atom-node-debug']
+      map[lineNumber].push 'and-current-pointer'
+      if index is 0 then map[lineNumber].push 'and-current-pointer--top'
     
     for bp in @getBreakpoints()
       {locations: [{lineNumber, scriptPath}]} = bp
       continue unless scriptPath is editorPath
-      marker = @createMarker(lineNumber, scriptPath)
-      @editor.decorateMarker marker,
-        type: 'gutter',
-        class: 'and-breakpoint'
-      @editor.decorateMarker marker,
-        type: 'line',
-        class: 'and-breakpoint'
+      map[lineNumber] ?= ['atom-node-debug']
+      map[lineNumber].push 'and-breakpoint'
+
+    # create markers and decorate them with appropriate classes
+    console.log map
+    for lineNumber,classes of map
+      marker = @createMarker(lineNumber, editorPath)
+      for cls in classes
+        @editor.decorateMarker marker,
+          type: ['gutter', 'line'],
+          class: cls
 
 
   destroyAllMarkers: ->
@@ -215,13 +210,15 @@ class DebuggerView extends View
     @bug.on('Debugger.resumed', =>
       @clearCurrentPause()
       @updateMarkers()
-      atom.workspaceView.removeClass('atom-node-debug--paused')
+      atom.workspaceView.removeClass('atom-node-debug')
+      atom.workspaceView.removeClass('and--paused')
       return
     )
     @bug.on('Debugger.paused', (breakInfo)=>
       @setCurrentPause(breakInfo)
       @updateMarkers()
-      atom.workspaceView.addClass('atom-node-debug--paused')
+      atom.workspaceView.addClass('atom-node-debug')
+      atom.workspaceView.addClass('and--paused')
       return
     )
 
