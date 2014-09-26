@@ -18,3 +18,4 @@
   'ctrl-alt-cmd-down': 'atom-node-debug:step-over'
   'ctrl-alt-cmd-left': 'atom-node-debug:step-out'
   'ctrl-alt-cmd-up': 'atom-node-debug:continue'
+  'ctrl-alt-cmd-b': 'atom-node-debug:toggle-breakpoint'
