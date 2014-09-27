@@ -1,5 +1,5 @@
 {
-  "name": "node-debug",
+  "name": "debugger",
   "main": "./lib/atom-node-debug",
   "version": "0.1.8",
   "description": "Debug node.js code from right within the editor.",
