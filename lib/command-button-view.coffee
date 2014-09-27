@@ -26,4 +26,4 @@ class CommandButtonView extends View
     @parentView.triggerCommand(@commandName)
     
   initialize: (suffix)->
-    @commandName = 'atom-node-debug:'+suffix
+    @commandName = 'node-debug:'+suffix

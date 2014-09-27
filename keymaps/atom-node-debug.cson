@@ -8,14 +8,14 @@
 # For more detailed documentation see
 # https://atom.io/docs/latest/advanced/keymaps
 '.workspace':
-  'ctrl-alt-cmd-i': 'atom-node-debug:connect'
+  'ctrl-alt-cmd-i': 'node-debug:connect'
 
 '.editor[data-grammar~=js]':
-  'ctrl-alt-i': 'atom-node-debug:toggle-debug-session'
+  'ctrl-alt-i': 'node-debug:toggle-debug-session'
   
 '.and--paused':
-  'ctrl-alt-cmd-right': 'atom-node-debug:step-into'
-  'ctrl-alt-cmd-down': 'atom-node-debug:step-over'
-  'ctrl-alt-cmd-left': 'atom-node-debug:step-out'
-  'ctrl-alt-cmd-up': 'atom-node-debug:continue'
-  'ctrl-alt-cmd-b': 'atom-node-debug:toggle-breakpoint'
+  'ctrl-alt-cmd-right': 'node-debug:step-into'
+  'ctrl-alt-cmd-down': 'node-debug:step-over'
+  'ctrl-alt-cmd-left': 'node-debug:step-out'
+  'ctrl-alt-cmd-up': 'node-debug:continue'
+  'ctrl-alt-cmd-b': 'node-debug:toggle-breakpoint'

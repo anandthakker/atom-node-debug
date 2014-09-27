@@ -15,7 +15,7 @@ module.exports =
 class DebuggerView extends View
 
   @content: ->
-    @div class: "tool-panel panel-bottom padded atom-node-debug and--ui", =>
+    @div class: "tool-panel panel-bottom padded node-debug and--ui", =>
       @div class: "panel-heading", =>
         @div class: 'btn-toolbar pull-left', =>
           @div class: 'btn-group', =>
@@ -52,22 +52,22 @@ class DebuggerView extends View
       @activePaneItemChanged()
 
     @breakpoints = state?.breakpoints ? []
-    atom.workspaceView.addClass('atom-node-debug')
+    atom.workspaceView.addClass('node-debug')
     atom.workspaceView.addClass('and--show-breakpoints')
     
-    @registerCommand 'atom-node-debug:toggle-debug-session',
+    @registerCommand 'node-debug:toggle-debug-session',
     '.editor', =>@toggleSession()
-    @registerCommand 'atom-node-debug:step-into',
-    '.atom-node-debug--paused', => @bug.stepInto()
-    @registerCommand 'atom-node-debug:step-over',
-    '.atom-node-debug--paused', => @bug.stepOver()
-    @registerCommand 'atom-node-debug:step-out',
-    '.atom-node-debug--paused', => @bug.stepOut()
-    @registerCommand 'atom-node-debug:continue',
-    '.atom-node-debug--paused', => @bug.resume()
-    @registerCommand 'atom-node-debug:toggle-breakpoint',
+    @registerCommand 'node-debug:step-into',
+    '.node-debug--paused', => @bug.stepInto()
+    @registerCommand 'node-debug:step-over',
+    '.node-debug--paused', => @bug.stepOver()
+    @registerCommand 'node-debug:step-out',
+    '.node-debug--paused', => @bug.stepOut()
+    @registerCommand 'node-debug:continue',
+    '.node-debug--paused', => @bug.resume()
+    @registerCommand 'node-debug:toggle-breakpoint',
     '.editor', => @toggleBreakpointAtCurrentLine()
-    @registerCommand 'atom-node-debug:clear-all-breakpoints',
+    @registerCommand 'node-debug:clear-all-breakpoints',
     '.editor', =>
       @clearAllBreakpoints()
       @updateMarkers()
@@ -130,14 +130,14 @@ class DebuggerView extends View
     map = {} #not really a map, but meh.
     for {lineNumber, scriptPath}, index in @getCurrentPauseLocations()
       continue unless scriptPath is editorPath
-      map[lineNumber] ?= ['atom-node-debug']
+      map[lineNumber] ?= ['node-debug']
       map[lineNumber].push 'and-current-pointer'
       if index is 0 then map[lineNumber].push 'and-current-pointer--top'
     
     for bp in @getBreakpoints()
       {locations: [{lineNumber, scriptPath}]} = bp
       continue unless scriptPath is editorPath
-      map[lineNumber] ?= ['atom-node-debug']
+      map[lineNumber] ?= ['node-debug']
       map[lineNumber].push 'and-breakpoint'
 
     # create markers and decorate them with appropriate classes
@@ -184,7 +184,7 @@ class DebuggerView extends View
     breakpoints: @breakpoints
 
   destroy: ->
-    atom.workspaceView.removeClass('atom-node-debug')
+    atom.workspaceView.removeClass('node-debug')
     atom.workspaceView.removeClass('and--show-breakpoints')
     @localCommandMap = null
     @endSession()

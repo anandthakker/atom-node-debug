@@ -11,20 +11,20 @@ describe "AtomNodeDebug", ->
 
   beforeEach ->
     atom.workspaceView = new WorkspaceView
-    activationPromise = atom.packages.activatePackage('atom-node-debug')
+    activationPromise = atom.packages.activatePackage('node-debug')
 
-  describe "when the atom-node-debug:toggle event is triggered", ->
+  describe "when the node-debug:toggle event is triggered", ->
     it "attaches and then detaches the view", ->
-      expect(atom.workspaceView.find('.atom-node-debug')).not.toExist()
+      expect(atom.workspaceView.find('.node-debug')).not.toExist()
 
       # This is an activation event, triggering it will cause the package to be
       # activated.
-      atom.workspaceView.trigger 'atom-node-debug:toggle'
+      atom.workspaceView.trigger 'node-debug:toggle'
 
       waitsForPromise ->
         activationPromise
 
       runs ->
-        expect(atom.workspaceView.find('.atom-node-debug')).toExist()
-        atom.workspaceView.trigger 'atom-node-debug:toggle'
-        expect(atom.workspaceView.find('.atom-node-debug')).not.toExist()
+        expect(atom.workspaceView.find('.node-debug')).toExist()
+        atom.workspaceView.trigger 'node-debug:toggle'
+        expect(atom.workspaceView.find('.node-debug')).not.toExist()

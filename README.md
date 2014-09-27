@@ -1,4 +1,8 @@
-# atom-node-debug package
+# node-debug package
+
+# *PLEASE NOTE*
+I just changed the name from `atom-node-debug` to `node-debug`.  Please uninstall
+the previous package, or it'll conflict!
 
 Debug node code from right within the editor!
 

@@ -11,7 +11,7 @@ class ChoosePortView extends View
   detaching: false
 
   initialize: (@debuggerView) ->
-    atom.workspaceView.command 'atom-node-debug:connect', '.editor', =>
+    atom.workspaceView.command 'node-debug:connect', '.editor', =>
       @toggle()
       false
 
