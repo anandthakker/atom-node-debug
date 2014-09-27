@@ -1,0 +1,20 @@
+2014-09-27 - 0.1.3 (81cce23)
+81cce23 (HEAD, master) Allow setting breakpoints when not debugging.
+5cd8758 persist breakpoints across debug sessions
+188e2d8 fix removeBreakpoint(), follow step into different files
+27163f8 refactor decoration/component classes,tweak styles
+be6b3ee remove logging statment
+84f2ad7 add keywords to package.json
+e4c8635 (tag: v0.1.2, origin/master) Prepare 0.1.2 release
+2595de6 Update README.md
+db85e74 (tag: v0.1.1) Prepare 0.1.1 release
+774dfa6 add screenshot and fix links
+1e0670e (tag: v0.1.0) Prepare 0.1.0 release
+2573160 tweak readme and package.json
+f12cb7d breakpoints
+293e015 console output
+1074644 refactor marker management, call stack highlighting
+0c5945f basic control panel
+80c8e63 Initial commit
+
+
