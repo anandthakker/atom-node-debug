@@ -91,7 +91,7 @@ class DebuggerView extends View
 
   toggleSession: (port) ->
     if @bug?
-      return endSession()
+      return @endSession()
 
     atom.workspaceView.prependToBottom(this)
 
@@ -178,6 +178,7 @@ class DebuggerView extends View
     @updateMarkers()
     @childprocess?.kill()
     @bug?.close() # TODO: unregister handlers orelse memory leak!
+    @bug = null
     @detach()
   
   serialize: ->
@@ -213,7 +214,6 @@ class DebuggerView extends View
       atom.workspaceView.addClass('and--paused')
       @setCurrentPause(breakInfo)
       @openPath @getCurrentPauseLocations()[0], =>
-        console.log 'paused, cached breaks:',breaks
         if breaks?.length > 0
           @setBreakpoints(breaks, => @updateMarkers())
           breaks = null
@@ -239,13 +239,11 @@ class DebuggerView extends View
   # array of {breakpointId:id, locations:array of {scriptPath, lineNumber}}
   breakpoints: []
   setBreakpoints: (breakpoints, done) ->
-    console.log 'set', breakpoints
     if not @bug?
       @breakpoints.push(bp)  for bp in breakpoints
       return done()
       
     setNext = (breakpoints, done) =>
-      console.log 'setting', breakpoints
       return done?() if not breakpoints? or breakpoints.length is 0
       [{breakpointId,locations},tail...] = breakpoints
       [{lineNumber, scriptPath},blah...] = locations
@@ -277,7 +275,6 @@ class DebuggerView extends View
     @bug.removeBreakpoint({breakpointId: id})
     @breakpoints = @breakpoints.filter ({breakpointId})->breakpointId isnt id
   toggleBreakpoint: ({scriptPath, lineNumber}, done)->
-    console.log @breakpoints
     toRemove = @breakpoints.filter (bp)->
       (scriptPath is bp.locations[0].scriptPath and
       lineNumber is bp.locations[0].lineNumber)
