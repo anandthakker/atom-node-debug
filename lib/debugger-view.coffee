@@ -47,6 +47,10 @@ class DebuggerView extends View
   Wire up view commands to DebuggerApi.
   ###
   initialize: (state) ->
+    @activePaneItemChanged()
+    atom.workspaceView.on 'pane-container:active-pane-item-changed', =>
+      @activePaneItemChanged()
+
     @breakpoints = state?.breakpoints ? []
     atom.workspaceView.addClass('atom-node-debug')
     atom.workspaceView.addClass('and--show-breakpoints')
@@ -74,13 +78,21 @@ class DebuggerView extends View
   ###
   View control logic.
   ###
+  activePaneItemChanged: ->
+    @editor = null
+    @destroyAllMarkers()
+
+    #TODO: what about split panes?
+    paneItem = atom.workspace.getActivePaneItem()
+    if paneItem?.getBuffer?()?
+      @editor = paneItem
+      @updateMarkers()
+
+
   toggleSession: (port) ->
     if @bug?
       return endSession()
 
-    @activePaneItemChanged()
-    atom.workspaceView.on 'pane-container:active-pane-item-changed', =>
-      @activePaneItemChanged()
     atom.workspaceView.prependToBottom(this)
 
     if port?
@@ -98,19 +110,6 @@ class DebuggerView extends View
         @console.append "<div>#{data}</div>"
       @childprocess.stdout.on 'data', (data) =>
         @console.append "<div>#{data}</div>"
-
-  activePaneItemChanged: ->
-    return unless @bug?
-
-    @editor = null
-    @destroyAllMarkers()
-
-    #TODO: what about split panes?
-    paneItem = atom.workspace.getActivePaneItem()
-    if paneItem?.getBuffer?()?
-      @editor = paneItem
-      @updateMarkers()
-
 
   markers: []
   createMarker: (lineNumber, scriptPath)->
@@ -240,6 +239,11 @@ class DebuggerView extends View
   # array of {breakpointId:id, locations:array of {scriptPath, lineNumber}}
   breakpoints: []
   setBreakpoints: (breakpoints, done) ->
+    console.log 'set', breakpoints
+    if not @bug?
+      @breakpoints.push(bp)  for bp in breakpoints
+      return done()
+      
     setNext = (breakpoints, done) =>
       console.log 'setting', breakpoints
       return done?() if not breakpoints? or breakpoints.length is 0
@@ -273,6 +277,7 @@ class DebuggerView extends View
     @bug.removeBreakpoint({breakpointId: id})
     @breakpoints = @breakpoints.filter ({breakpointId})->breakpointId isnt id
   toggleBreakpoint: ({scriptPath, lineNumber}, done)->
+    console.log @breakpoints
     toRemove = @breakpoints.filter (bp)->
       (scriptPath is bp.locations[0].scriptPath and
       lineNumber is bp.locations[0].lineNumber)

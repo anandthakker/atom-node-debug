@@ -11,7 +11,7 @@
   'ctrl-alt-cmd-i': 'atom-node-debug:connect'
 
 '.editor[data-grammar~=js]':
-  'ctrl-alt-i': 'atom-node-debug:debug-current-file'
+  'ctrl-alt-i': 'atom-node-debug:toggle-debug-session'
   
 '.and--paused':
   'ctrl-alt-cmd-right': 'atom-node-debug:step-into'

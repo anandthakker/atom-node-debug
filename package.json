@@ -24,5 +24,7 @@
     "debug": "^2.0.0",
     "debugger-api": "^0.1.1",
     "underscore-plus": "^1.5.1"
+  },
+  "devDependencies": {
   }
 }
