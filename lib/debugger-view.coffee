@@ -1,39 +1,14 @@
 debug = require('debug')
 #debug.enable('node-inspector-api')
 
-_ = require 'underscore-plus'
 spawn = require('child_process').spawn
 path = require('path')
 url = require('url')
 
-{View, Range, Point, $$} = require 'atom'
-DebuggerApi = require('debugger-api')
+{View, Range, Point} = require 'atom'
 
-class CommandButtonView extends View
-  @content: =>
-    @button
-      class: 'btn'
-      click: 'triggerMe'
-  
-  commandsReady: ->
-    [@kb] = atom.keymaps.findKeyBindings(command: @commandName)
-    [@command] = (atom.commands
-    .findCommands
-      target: atom.workspaceView
-    .filter (cmd) => cmd.name is @commandName)
-    
-    [kb,cmd,disp] = [@kb, @commandName, @command?.displayName]
-    if kb?
-      @append($$ ->
-        @kbd _.humanizeKeystroke(kb.keystrokes), class: ''
-        @span (disp ? cmd).split(':').pop()
-      )
-  
-  triggerMe: ->
-    @parentView.triggerCommand(@commandName)
-    
-  initialize: (suffix)->
-    @commandName = 'atom-node-debug:'+suffix
+DebuggerApi = require('debugger-api')
+CommandButtonView = require('./command-button-view')
 
 
 module.exports =
@@ -71,9 +46,13 @@ class DebuggerView extends View
   ###
   Wire up view commands to DebuggerApi.
   ###
-  initialize: (serializeState) ->
-    @registerCommand 'atom-node-debug:debug-current-file',
-    '.editor', =>@startSession()
+  initialize: (state) ->
+    @breakpoints = state?.breakpoints ? []
+    atom.workspaceView.addClass('atom-node-debug')
+    atom.workspaceView.addClass('and--show-breakpoints')
+    
+    @registerCommand 'atom-node-debug:toggle-debug-session',
+    '.editor', =>@toggleSession()
     @registerCommand 'atom-node-debug:step-into',
     '.atom-node-debug--paused', => @bug.stepInto()
     @registerCommand 'atom-node-debug:step-over',
@@ -95,7 +74,10 @@ class DebuggerView extends View
   ###
   View control logic.
   ###
-  startSession: (port) ->
+  toggleSession: (port) ->
+    if @bug?
+      return endSession()
+
     @activePaneItemChanged()
     atom.workspaceView.on 'pane-container:active-pane-item-changed', =>
       @activePaneItemChanged()
@@ -160,7 +142,6 @@ class DebuggerView extends View
       map[lineNumber].push 'and-breakpoint'
 
     # create markers and decorate them with appropriate classes
-    console.log map
     for lineNumber,classes of map
       marker = @createMarker(lineNumber, editorPath)
       for cls in classes
@@ -182,18 +163,6 @@ class DebuggerView extends View
       # TODO: breakpoint list
     )
 
-  endSession: ->
-    @destroyAllMarkers()
-    @childprocess?.kill()
-    @bug?.close()
-    @detach()
-    
-  serialize: ->
-
-  destroy: ->
-    @localCommandMap = null
-    @endSession()
-
   openPath: ({scriptPath, lineNumber}, done)->
     done() if path.normalize(scriptPath) is path.normalize(@editor.getPath())
     atom.workspaceView.open(scriptPath).done ->
@@ -205,26 +174,52 @@ class DebuggerView extends View
         @editor = atom.workspace.getActiveEditor()
       done()
 
-    
+  endSession: ->
+    @clearCurrentPause()
+    @updateMarkers()
+    @childprocess?.kill()
+    @bug?.close() # TODO: unregister handlers orelse memory leak!
+    @detach()
+  
+  serialize: ->
+    breakpoints: @breakpoints
+
+  destroy: ->
+    atom.workspaceView.removeClass('atom-node-debug')
+    atom.workspaceView.removeClass('and--show-breakpoints')
+    @localCommandMap = null
+    @endSession()
+    @destroyAllMarkers()
+
 
   ###
   Wire up modelly stuff to viewy stuff
   ###
   startDebugger: (port) ->
+    # the current list of breakpoints is from before this
+    # session. hold them for now, hook 'em up once we've paused.
+    breaks = @breakpoints
+    @breakpoints = []
+
     @bug = new DebuggerApi({debugPort: port})
     @bug.enable()
+
     @bug.on('Debugger.resumed', =>
       @clearCurrentPause()
       @updateMarkers()
-      atom.workspaceView.removeClass('atom-node-debug')
       atom.workspaceView.removeClass('and--paused')
       return
     )
     @bug.on('Debugger.paused', (breakInfo)=>
-      @setCurrentPause(breakInfo)
-      @openPath(@getCurrentPauseLocations()[0], => @updateMarkers())
-      atom.workspaceView.addClass('atom-node-debug')
       atom.workspaceView.addClass('and--paused')
+      @setCurrentPause(breakInfo)
+      @openPath @getCurrentPauseLocations()[0], =>
+        console.log 'paused, cached breaks:',breaks
+        if breaks?.length > 0
+          @setBreakpoints(breaks, => @updateMarkers())
+          breaks = null
+        else
+          @updateMarkers()
       return
     )
 
@@ -244,30 +239,41 @@ class DebuggerView extends View
   ###
   # array of {breakpointId:id, locations:array of {scriptPath, lineNumber}}
   breakpoints: []
-  setBreakpoint: ({scriptPath, lineNumber}, done)->
-    bp =
-      url: url.format
-        protocol: 'file'
-        pathname: scriptPath
-        slashes: true
-      lineNumber: lineNumber
-    @bug.setBreakpointByUrl(bp, (err, {breakpointId, locations})=>
-      if (err?) then console.error(err)
-      else if not locations?[0]? then console.error("Couldn't set breakpoint.")
-      else
-        @breakpoints.push(
-          breakpointId: breakpointId
-          locations: locations.map (loc)=>@debuggerToAtomLocation(loc)
-        )
-        done()
-    )
+  setBreakpoints: (breakpoints, done) ->
+    setNext = (breakpoints, done) =>
+      console.log 'setting', breakpoints
+      return done?() if not breakpoints? or breakpoints.length is 0
+      [{breakpointId,locations},tail...] = breakpoints
+      [{lineNumber, scriptPath},blah...] = locations
+      bp =
+        url: url.format
+          protocol: 'file'
+          pathname: scriptPath
+          slashes: true
+        lineNumber: lineNumber
+      @bug.setBreakpointByUrl(bp, (err, result)=>
+        {breakpointId, locations} = result ? {}
+        if (err?)
+          console.error(err)
+        else if not locations?[0]?
+          console.error("Couldn't set breakpoint.")
+        else
+          @breakpoints.push(
+            breakpointId: breakpointId
+            locations: locations.map (loc)=>@debuggerToAtomLocation(loc)
+          )
+        setNext(tail, done)
+      )
+    setNext(breakpoints, done)
+    
+  setBreakpoint: (location, done)->
+    @setBreakpoints([{breakpointId: null, locations: [location]}], done)
+    
   removeBreakpoint: (id)->
     @bug.removeBreakpoint({breakpointId: id})
     @breakpoints = @breakpoints.filter ({breakpointId})->breakpointId isnt id
   toggleBreakpoint: ({scriptPath, lineNumber}, done)->
-    console.log scriptPath, lineNumber
     toRemove = @breakpoints.filter (bp)->
-      console.log bp.locations[0].scriptPath, bp.locations[0].lineNumber
       (scriptPath is bp.locations[0].scriptPath and
       lineNumber is bp.locations[0].lineNumber)
     if toRemove.length > 0

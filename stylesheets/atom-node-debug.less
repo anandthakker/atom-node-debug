@@ -17,7 +17,23 @@
   
 }
 
+.and--show-breakpoints {
+  // decoration for a breakpoint.
+  .and-breakpoint
+  {
+    background-color: @line-color-breakpoint;
+    &.line-number {
+      background-color: @gutter-color-breakpoint;
+    }
+    border-color: @border-color-breakpoint;
+    border-style: solid;
+    border-width: 1px 0;
+  }
+}
+
 //Set on workspace when exection is paused.
+//TODO: this is being overused--both for paused and for
+// when there's an active debugging session (i.e. even between pauses).
 .and--paused {
   
   // decoration for the lines of code anywhere in the call stack
@@ -27,18 +43,6 @@
     &.line-number {
       background-color: @gutter-color-current-pointer-stack
     }
-    border-style: solid;
-    border-width: 1px 0;
-  }
-  
-  // decoration for a breakpoint.
-  .and-breakpoint
-  {
-    background-color: @line-color-breakpoint;
-    &.line-number {
-      background-color: @gutter-color-breakpoint;
-    }
-    border-color: @border-color-breakpoint;
     border-style: solid;
     border-width: 1px 0;
   }
@@ -55,16 +59,18 @@
     border-width: 1px 0;
   }
   
+  .and-console {
+    height: 15em;
+  }
+}
+  
   // in the gutter, we want breakpoint style to win over current exec. pointer
   // so that we can still see that the line is a breakpoint.
+.and--show-breakpoints.and--paused {
   .and-breakpoint.line-number {
-    .and-breakpoint();
+    background-color: @gutter-color-breakpoint;
   }
   .and-breakpoint.and-current-pointer {
     border-color: @border-color-breakpoint;
-  }
-  
-  .and-console {
-    height: 15em;
   }
 }

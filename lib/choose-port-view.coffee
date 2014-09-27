@@ -52,7 +52,7 @@ class ChoosePortView extends View
       debugPort = null
     
     # This is where we start the debugger.
-    @debuggerView.startSession(debugPort)
+    @debuggerView.toggleSession(debugPort)
 
 
   storeFocusedElement: ->
