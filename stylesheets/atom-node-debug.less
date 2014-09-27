@@ -11,15 +11,14 @@
 
 
 // Set on any element currently being used/highlighted/etc. by this package.
-// Other more specific styles will be prefixed by 'and', because c'mon: you can't have
-// stuff like node-debug--current-pointer--top *and* a linter max line length.
-.node-debug {
+// Other more specific styles will also be prefixed by 'debugger'
+.debugger {
   
 }
 
-.and--show-breakpoints {
+.debugger--show-breakpoints {
   // decoration for a breakpoint.
-  .and-breakpoint
+  .debugger-breakpoint
   {
     background-color: @line-color-breakpoint;
     &.line-number {
@@ -34,11 +33,11 @@
 //Set on workspace when exection is paused.
 //TODO: this is being overused--both for paused and for
 // when there's an active debugging session (i.e. even between pauses).
-.and--paused {
+.debugger--paused {
   
   // decoration for the lines of code anywhere in the call stack
   // in the currently paused execution state.
-  .and-current-pointer {
+  .debugger-current-pointer {
     border-color: @border-color-current-pointer;
     &.line-number {
       background-color: @gutter-color-current-pointer-stack
@@ -49,7 +48,7 @@
   
   // decoration for the line at the *top* of the call stack in the
   // currently paused exection state.
-  .and-current-pointer--top {
+  .debugger-current-pointer--top {
     background-color: @line-color-current-pointer;
     &.line-number {
       background-color: @gutter-color-current-pointer;
@@ -59,18 +58,18 @@
     border-width: 1px 0;
   }
   
-  .and-console {
+  .debugger-console {
     height: 15em;
   }
 }
   
   // in the gutter, we want breakpoint style to win over current exec. pointer
   // so that we can still see that the line is a breakpoint.
-.and--show-breakpoints.and--paused {
-  .and-breakpoint.line-number {
+.debugger--show-breakpoints.debugger--paused {
+  .debugger-breakpoint.line-number {
     background-color: @gutter-color-breakpoint;
   }
-  .and-breakpoint.and-current-pointer {
+  .debugger-breakpoint.debugger-current-pointer {
     border-color: @border-color-breakpoint;
   }
 }

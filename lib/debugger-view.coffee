@@ -1,6 +1,6 @@
 debug = require('debug')
-# debug.enable('node-inspector-api,atom-node-debug')
-debug = debug('atom-node-debug')
+# debug.enable('node-inspector-api,atom-debugger')
+debug = debug('atom-debugger')
 
 spawn = require('child_process').spawn
 path = require('path')
@@ -16,7 +16,7 @@ module.exports =
 class DebuggerView extends View
 
   @content: ->
-    @div class: "tool-panel panel-bottom padded node-debug and--ui", =>
+    @div class: "tool-panel panel-bottom padded debugger debugger--ui", =>
       @div class: "panel-heading", =>
         @div class: 'btn-toolbar pull-left', =>
           @div class: 'btn-group', =>
@@ -30,7 +30,7 @@ class DebuggerView extends View
             @subview 'stepInto', new CommandButtonView('step-into')
             @subview 'stepOut', new CommandButtonView('step-out')
         @span 'Debugging'
-      @div class: "panel-body padded and-console", outlet: 'console'
+      @div class: "panel-body padded debugger-console", outlet: 'console'
 
   ###
   To make up for the lack of a good central command manager
@@ -53,22 +53,22 @@ class DebuggerView extends View
       @activePaneItemChanged()
 
     @breakpoints = state?.breakpoints ? []
-    atom.workspaceView.addClass('node-debug')
-    atom.workspaceView.addClass('and--show-breakpoints')
+    atom.workspaceView.addClass('debugger')
+    atom.workspaceView.addClass('debugger--show-breakpoints')
     
-    @registerCommand 'node-debug:toggle-debug-session',
+    @registerCommand 'debugger:toggle-debug-session',
     '.editor', =>@toggleSession()
-    @registerCommand 'node-debug:step-into',
-    '.node-debug--paused', => @bug.stepInto()
-    @registerCommand 'node-debug:step-over',
-    '.node-debug--paused', => @bug.stepOver()
-    @registerCommand 'node-debug:step-out',
-    '.node-debug--paused', => @bug.stepOut()
-    @registerCommand 'node-debug:continue',
-    '.node-debug--paused', => @bug.resume()
-    @registerCommand 'node-debug:toggle-breakpoint',
+    @registerCommand 'debugger:step-into',
+    '.debugger--paused', => @bug.stepInto()
+    @registerCommand 'debugger:step-over',
+    '.debugger--paused', => @bug.stepOver()
+    @registerCommand 'debugger:step-out',
+    '.debugger--paused', => @bug.stepOut()
+    @registerCommand 'debugger:continue',
+    '.debugger--paused', => @bug.resume()
+    @registerCommand 'debugger:toggle-breakpoint',
     '.editor', => @toggleBreakpointAtCurrentLine()
-    @registerCommand 'node-debug:clear-all-breakpoints',
+    @registerCommand 'debugger:clear-all-breakpoints',
     '.editor', =>
       @clearAllBreakpoints()
       @updateMarkers()
@@ -132,15 +132,15 @@ class DebuggerView extends View
     map = {} #not really a map, but meh.
     for {lineNumber, scriptPath}, index in @getCurrentPauseLocations()
       continue unless scriptPath is editorPath
-      map[lineNumber] ?= ['node-debug']
-      map[lineNumber].push 'and-current-pointer'
-      if index is 0 then map[lineNumber].push 'and-current-pointer--top'
+      map[lineNumber] ?= ['debugger']
+      map[lineNumber].push 'debugger-current-pointer'
+      if index is 0 then map[lineNumber].push 'debugger-current-pointer--top'
     
     for bp in @getBreakpoints()
       {locations: [{lineNumber, scriptPath}]} = bp
       continue unless scriptPath is editorPath
-      map[lineNumber] ?= ['node-debug']
-      map[lineNumber].push 'and-breakpoint'
+      map[lineNumber] ?= ['debugger']
+      map[lineNumber].push 'debugger-breakpoint'
 
     # create markers and decorate them with appropriate classes
     for lineNumber,classes of map
@@ -187,8 +187,8 @@ class DebuggerView extends View
     breakpoints: @breakpoints
 
   destroy: ->
-    atom.workspaceView.removeClass('node-debug')
-    atom.workspaceView.removeClass('and--show-breakpoints')
+    atom.workspaceView.removeClass('debugger')
+    atom.workspaceView.removeClass('debugger--show-breakpoints')
     @localCommandMap = null
     @endSession()
     @destroyAllMarkers()
@@ -215,12 +215,12 @@ class DebuggerView extends View
       debug('resumed')
       @clearCurrentPause()
       @updateMarkers()
-      atom.workspaceView.removeClass('and--paused')
+      atom.workspaceView.removeClass('debugger--paused')
       return
     )
     @bug.on('Debugger.paused', (breakInfo)=>
       debug('paused')
-      atom.workspaceView.addClass('and--paused')
+      atom.workspaceView.addClass('debugger--paused')
       @setCurrentPause(breakInfo)
       @openPath @getCurrentPauseLocations()[0], =>
         if breaks?.length > 0

@@ -1,4 +1,4 @@
-# node-debug package
+# Atom debugger package
 
 Debug javascript code<sup><a id="ref1" href="#note1">1</a></sup> from right within the editor: set breakpoints, step through code,
 inspect variable/expression values<sup><a id="ref2" href="#note2">2</a></sup>.

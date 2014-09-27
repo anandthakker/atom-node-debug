@@ -2,7 +2,7 @@
   "name": "debugger",
   "main": "./lib/atom-node-debug",
   "version": "0.1.9",
-  "description": "Debug node.js code from right within the editor.",
+  "description": "Debug javascript code from right within the editor: set breakpoints, step through code, inspect variable/expression values, etc.",
   "keywords": [
     "node",
     "nodejs",
