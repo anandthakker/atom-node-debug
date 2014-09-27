@@ -1,3 +1,8 @@
+2014-09-27 - 0.1.4 (5910c61)
+5910c61 (HEAD, master) WARNING - rename atom-node-debug to node-debug
+9f5d04d (origin/master) 0.1.3
+
+
 2014-09-27 - 0.1.3 (81cce23)
 81cce23 (HEAD, master) Allow setting breakpoints when not debugging.
 5cd8758 persist breakpoints across debug sessions
