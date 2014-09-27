@@ -1,5 +1,6 @@
 debug = require('debug')
-#debug.enable('node-inspector-api')
+# debug.enable('node-inspector-api,atom-node-debug')
+debug = debug('atom-node-debug')
 
 spawn = require('child_process').spawn
 path = require('path')
@@ -121,6 +122,7 @@ class DebuggerView extends View
     marker
 
   updateMarkers: ->
+    debug('update markers')
     @destroyAllMarkers()
     editorPath = @editor.getPath()
     return unless editorPath?
@@ -196,21 +198,28 @@ class DebuggerView extends View
   Wire up modelly stuff to viewy stuff
   ###
   startDebugger: (port) ->
+    debug('starting debugger', port)
     # the current list of breakpoints is from before this
     # session. hold them for now, hook 'em up once we've paused.
     breaks = @breakpoints
     @breakpoints = []
 
     @bug = new DebuggerApi({debugPort: port})
-    @bug.enable()
+    @bug.enable(null, (err, result)->
+      debug('enable done', err, result)
+      if(err) then console.error err
+      else debug('debugger enabled')
+    )
 
     @bug.on('Debugger.resumed', =>
+      debug('resumed')
       @clearCurrentPause()
       @updateMarkers()
       atom.workspaceView.removeClass('and--paused')
       return
     )
     @bug.on('Debugger.paused', (breakInfo)=>
+      debug('paused')
       atom.workspaceView.addClass('and--paused')
       @setCurrentPause(breakInfo)
       @openPath @getCurrentPauseLocations()[0], =>
