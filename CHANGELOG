@@ -1,3 +1,9 @@
+2014-09-27 - 0.1.8 (db26c86)
+db26c86 (HEAD, master) Add debugging statements and updated README
+7f52691 Make `Node Debug: Connect` task work from anywhere
+f4a3a53 (tag: v0.1.7, origin/master) 0.1.7
+
+
 2014-09-27 - 0.1.7 (850f79b)
 850f79b (HEAD, master) bugfix: subsequent debug sessions not working
 f159926 (tag: v0.1.6, origin/master) Prepare 0.1.6 release
