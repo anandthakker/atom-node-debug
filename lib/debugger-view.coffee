@@ -1,6 +1,4 @@
-debug = require('debug')
-# debug.enable('node-inspector-api,atom-debugger')
-debug = debug('atom-debugger')
+debug = require('debug')('atom-debugger')
 
 spawn = require('child_process').spawn
 path = require('path')

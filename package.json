@@ -13,7 +13,8 @@
     "node-inspector"
   ],
   "activationEvents": [
-    "cursor:moved"
+    "debugger:connect",
+    "debugger:toggle-debug-session"
   ],
   "repository": "https://github.com/anandthakker/atom-node-debug",
   "license": "MIT",
