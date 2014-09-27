@@ -1,3 +1,12 @@
+2014-09-27 - 0.1.7 (850f79b)
+850f79b (HEAD, master) bugfix: subsequent debug sessions not working
+f159926 (tag: v0.1.6, origin/master) Prepare 0.1.6 release
+80aab92 Renaming atom-node-debug to node-debug
+44d1960 (tag: v0.1.5) Prepare 0.1.5 release
+829f085 fix package.json
+1c40013 (tag: v0.1.4) 0.1.4
+
+
 2014-09-27 - 0.1.4 (5910c61)
 5910c61 (HEAD, master) WARNING - rename atom-node-debug to node-debug
 9f5d04d (origin/master) 0.1.3
