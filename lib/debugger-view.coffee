@@ -177,7 +177,8 @@ class DebuggerView extends View
     @clearCurrentPause()
     @updateMarkers()
     @childprocess?.kill()
-    @bug?.close() # TODO: unregister handlers orelse memory leak!
+    @childprocess = null
+    @bug?.close()
     @bug = null
     @detach()
   
