@@ -8,7 +8,6 @@ module.exports =
     require('debug').enable([
       'node-inspector-api'
       'atom-debugger'
-      'node-inspector:*'
     ].join(','))
 
     debug = require('debug')('atom-debugger')

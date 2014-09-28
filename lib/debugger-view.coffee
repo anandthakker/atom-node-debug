@@ -27,7 +27,7 @@ class DebuggerView extends View
             @subview 'stepOver', new CommandButtonView('step-over')
             @subview 'stepInto', new CommandButtonView('step-into')
             @subview 'stepOut', new CommandButtonView('step-out')
-        @span 'Debugging'
+        @div class: 'debugger-status', 'Debugging', outlet: 'status'
       @div class: "panel-body padded debugger-console", outlet: 'console'
 
   ###
@@ -221,7 +221,8 @@ class DebuggerView extends View
       debug('paused')
       atom.workspaceView.addClass('debugger--paused')
       @setCurrentPause(breakInfo)
-      @openPath @getCurrentPauseLocations()[0], =>
+      @openPath loc=@getCurrentPauseLocations()[0], =>
+        @status.text("Paused at line #{loc.lineNumber} of #{loc.scriptPath}")
         if breaks?.length > 0
           @setBreakpoints(breaks, => @updateMarkers())
           breaks = null
