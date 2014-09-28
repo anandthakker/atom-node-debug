@@ -1,15 +1,14 @@
 # Atom debugger package
 
-Debug javascript code<sup><a id="ref1" href="#note1">1</a></sup> from right within the editor: set breakpoints, step through code,
-inspect variable/expression values<sup><a id="ref2" href="#note2">2</a></sup>.
+Debug javascript code from right within the editor: set breakpoints, step through code,
+inspect variable/expression values<sup><a id="ref1" href="#note1">1</a></sup>.
 
 We all love (and couldn't live without) the Chrome inspector, but sometimes you just don't want
 to open up your whole source tree in another browser.
 
 <small>
 Notes:
-<a id="note1" href="#ref1">1</a></sup> Currently only works using node to run js. Working on a way to connect to a running Chrome browser, too.
-<a id="note2" href="#ref2">2</a></sup> Coming soon!
+<a id="note1" href="#ref1">1</a></sup> Coming soon!
 </small>
 
 ![](https://raw.githubusercontent.com/anandthakker/atom-node-debug/master/screenshot.gif)
@@ -21,13 +20,12 @@ Notes:
 
 # Roadmap
 
-- [ ] Ability to attach to Chrome debugger in addition to Node one. **This will be a challenge,
-  but would be HUGE!**
+- [ ] Ability to attach to Chrome debugger in addition to Node one. **ALMOST THERE!**
 - [x] Open up a new tab when execution leaves current source.
 - [x] Persist breakpoints across debugger sessions.
-- [ ] TESTS! (Although the underlying API has tests, the ui wiring doesn't.)
 - [ ] Breakpoint list
 - [ ] Variables
+- [ ] TESTS! (Although the underlying API has tests, the ui wiring doesn't.)
 - [ ] Jump up and down the stack
 - [ ] Eval
 - [ ] Save and continue
@@ -43,6 +41,42 @@ theme background color variables for use as breakpoint
 and current line markers.  That means the default styles
 probably work fine for dark themes, and less well for
 light ones.
+
+# Advanced Usage
+
+## Arbitrary Node Inspectors
+
+```bash
+$ node-inspector
+Node Inspector v0.7.4
+Visit http://127.0.0.1:8080/debug?port=5858 to start debugging.
+```
+
+You want the *front end* port--8080 in the example above.
+
+
+## Chrome
+**IN PROGRESS**
+
+```bash
+$ Google\\ Chrome\\ Canary --remote-debugging-port=9222
+$ curl http://localhost:9222/json
+```
+```json
+[ {
+   "description": "",
+   "devtoolsFrontendUrl": "/devtools/devtools.html?ws=localhost:9222/devtools/
+   page/4649D7AA-4AAC-4B2E-A86A-A3789FB3EC61",
+   "faviconUrl": "https://www.google.com/favicon.ico",
+   "id": "4649D7AA-4AAC-4B2E-A86A-A3789FB3EC61",
+   "title": "My Web Page!",
+   "type": "page",
+   "url": "http://mywebpage.com",
+   "webSocketDebuggerUrl":"ws://localhost:9222/devtools/page/4649D7AA-4AAC-4B2E-A86A-A3789FB3EC61"
+}, ... ]
+```
+
+In this case, you want the `webSocketDebuggerUrl` starting with `ws://...`.
 
 
 # Contributing

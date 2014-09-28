@@ -23,8 +23,10 @@
   },
   "dependencies": {
     "debug": "^2.0.0",
-    "debugger-api": "^0.1.1",
-    "underscore-plus": "^1.5.1"
+    "node-inspector": "^0.7.4",
+    "q": "^1.0.1",
+    "underscore-plus": "^1.5.1",
+    "ws": "^0.4.32"
   },
   "devDependencies": {}
 }

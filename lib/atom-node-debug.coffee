@@ -1,29 +1,32 @@
 module.exports =
-  choosePortView: null
+  chooseDebuggerView: null
   debuggerView: null
+  debuggerModel: null
 
   activate: (state) ->
     # Perform `require`s after activation -- ugly but faster, according to:
     # https://discuss.atom.io/t/how-to-speed-up-your-packages/10903
-    require('debug').enable([
-      'node-inspector-api'
-      'atom-debugger'
-    ].join(','))
+    # require('debug').enable([
+    #   'atom-debugger:*'
+    # ].join(','))
 
-    debug = require('debug')('atom-debugger')
-    ChoosePortView = require './choose-port-view'
+    debug = require('debug')('atom-debugger:package')
+    ChooseDebuggerView = require './choose-debugger-view'
     DebuggerView = require './debugger-view'
+    DebuggerModel = require './debugger-model'
 
     debug('activating debugger package')
-    @debuggerView = new DebuggerView(state.debuggerViewState)
-    @choosePortView = new ChoosePortView(
+    
+    @debuggerModel = new DebuggerModel(state?.debuggerModelState ? {})
+    @debuggerView = new DebuggerView(@debuggerModel)
+    @chooseDebuggerView = new ChooseDebuggerView(
       @debuggerView,
       state.choosePortViewState)
 
   deactivate: ->
-    @choosePortView.destroy()
+    @chooseDebuggerView.destroy()
     @debuggerView.destroy()
 
   serialize: ->
-    choosePortViewState: @choosePortView.serialize()
-    debuggerViewState: @debuggerView.serialize()
+    choosePortViewState: @chooseDebuggerView.serialize()
+    debuggerModelState: @debuggerModel.serialize()

@@ -1,10 +1,10 @@
 {$, EditorView, Point, View} = require 'atom'
 
 module.exports =
-class ChoosePortView extends View
+class ChooseDebuggerView extends View
   
   @content: ->
-    @div class: 'choose-port overlay from-top mini', =>
+    @div class: 'overlay from-top', =>
       @subview 'miniEditor', new EditorView(mini: true)
       @div class: 'message', outlet: 'message'
 
@@ -15,12 +15,13 @@ class ChoosePortView extends View
       @toggle()
       false
 
-    @miniEditor.hiddenInput.on 'focusout', => @detach() unless @detaching
-    @on 'core:confirm', => @confirm()
-    @on 'core:cancel', => @detach()
+    # @miniEditor.hiddenInput.on 'focusout', => @detach() unless @detaching
+    atom.workspaceView.on 'core:confirm', => @confirm()
+    atom.workspaceView.on 'core:cancel', => @detach()
 
     @miniEditor.getModel().on 'will-insert-text', ({cancel, text}) ->
-      cancel() unless text.match(/[0-9]/)
+      # cancel() unless text.match(/[0-9]/)
+      # TODO: validate ws url.
 
   toggle: ->
     if @hasParent()
@@ -70,11 +71,11 @@ class ChoosePortView extends View
       atom.workspaceView.append(this)
       @message.html """
       <p>
-        Enter port of running debugger or leave blank to debug current file.
-      </p>
-      <p>
-        If the former, make sure node is debugging:<br>
-        <code>node --debug-brk=PORT</code>
+        Enter the front-end port of a node-inspector or the websocket address of
+        a debugging Chrome instance.<br>
+        <strong class="text-warning">NOTE: That is <em>not</em> the same thing
+        as the node debug port. By default, it's 8080 for node-inspector.
+        </strong>
       </p>
       """
       @miniEditor.focus()
