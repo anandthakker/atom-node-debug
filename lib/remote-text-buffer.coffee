@@ -8,6 +8,9 @@ Q = require 'q'
 
 # Subclass of `TextBuffer` that represents a buffer of text pulled from a
 # remote source.
+#
+# TODO: RemoteTextBuffer doesn't serialize well
+# TODO: Remote script opening needs to check for existing first.
 module.exports=
 class RemoteTextBuffer extends TextBuffer
   
@@ -34,17 +37,17 @@ class RemoteTextBuffer extends TextBuffer
   constructor: ({@remoteUri})->
     super({})
     
-  deserializeParams: (params)->
-    {@remoteUri} = params
-    super
-  
-  serializeParams: ->
-    _.extend({@remoteUri}, super)
+  # Prevent the Pane from serializing us (a hack for now, because, being in a
+  # package, this class can't register itself with the deserializer before atom
+  # tries to deserialize the workspace).
+  serialize: null
+
 
   updateCachedDiskContentsSync: ->
     throw new Error('Unimplemented: updateCachedDiskContentsSync')
   
   updateCachedDiskContents: ->
+    if @loaded then return # don't request more than once.
     debug('requesting', @remoteUri)
     Q.nfcall(request, @remoteUri).then ([response, body])=>
       debug('got response', response)
