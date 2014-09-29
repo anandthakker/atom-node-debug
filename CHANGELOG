@@ -1,3 +1,7 @@
+2014-09-29 - 0.2.0 (a226426)
+a226426 (HEAD, tag: v0.1.11, master) 0.1.11
+
+
 2014-09-29 - 0.1.11 (f05b383)
 f05b383 (HEAD, master, debugger-api-refactor) Major refactor: make this module function as a DevTools frontend.
 c09e462 Show 'paused at [line number] of [file]' message
