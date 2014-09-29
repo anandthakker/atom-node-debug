@@ -1,3 +1,11 @@
+2014-09-29 - 0.1.11 (f05b383)
+f05b383 (HEAD, master, debugger-api-refactor) Major refactor: make this module function as a DevTools frontend.
+c09e462 Show 'paused at [line number] of [file]' message
+3e293b3 Release childprocess at the end of the debug session.
+b1db94a Improve impact of package on Atom load time.
+5cacf96 (tag: v0.1.10, origin/master) 0.1.10
+
+
 2014-09-27 - 0.1.10 (c9b31ee)
 c9b31ee (HEAD, master) LAST RENAME: update commands and style prefixes to 'debugger'
 6502714 (tag: v0.1.9, origin/master) Prepare 0.1.9 release
