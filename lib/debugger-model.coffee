@@ -42,7 +42,7 @@ class DebuggerModel
   resume: => @api.debugger.resume()
     
   isActive: false
-  connect: (@wsUrl, @onPause, @onResume) ->
+  connect: (@wsUrl, @onPause, @onResume, @openScript) ->
     if @isActive then throw new Error('Already connected.')
     @onPause ?= ->
     @onResume ?= ->
@@ -63,7 +63,7 @@ class DebuggerModel
         else debug('debugger enabled')
       )
       @api.page.getResourceTree(null, (err, result)->
-        debug('getResourceTree returned!', err)
+        debug('getResourceTree returned!', err, result)
       )
       
     @api.once 'close', => @close()
@@ -109,29 +109,26 @@ class DebuggerModel
   Scripts
   ###
   scriptCache: {}
-  urlToPath: (earl)-> url.parse(earl).pathname
   addScript: (scriptObject)->
-    scriptObject.scriptPath = @urlToPath(scriptObject.sourceURL)
-    @scriptCache[scriptObject.scriptId] = scriptObject
-  clearScripts: () -> scriptCache = {}
-  getScript: (id) -> scriptCache[id]
-  getScriptIdForPath: (path)->
-    for id,script of scriptCache
-      if script.scriptPath is path then return id
+    @scriptCache[''+scriptObject.scriptId] = scriptObject
+    debug('added script', scriptObject)
+    
+    # TEMPORARY!  TODO
+    @openScript({scriptId: scriptObject.scriptId, lineNumber: 0})
+    
+    
+  clearScripts: () -> @scriptCache = {}
+  getScript: (id) -> @scriptCache[''+id]
+  getScriptIdForUrl: (url)->
+    for id,script of @scriptCache
+      if script.sourceURL is url then return id
     return null
-  addPathToLocationObject: ({lineNumber, scriptId}) ->
-    scriptUrl = @scriptCache[scriptId]?.sourceURL
-    path = if scriptUrl? then @urlToPath(scriptUrl) else ''
-    debug('script id -> url -> path', scriptId, scriptUrl, path)
-    scriptId: scriptId
-    scriptPath: path
-    lineNumber: lineNumber
 
-  
+
   ###
   Breakpoints
   ###
-  # array of {breakpointId:id, locations:array of {scriptPath, lineNumber}}
+  # array of {breakpointId:id, locations:array of {scriptUrl, lineNumber}}
   breakpoints: []
   
   registerBreakpoints: (breakpoints) ->
@@ -141,24 +138,19 @@ class DebuggerModel
     
   setBreakpoint: (location)->
     def = q.defer()
-    
-    scriptUrl = url.format
-      protocol: 'file'
-      pathname: location.scriptPath
-      slashes: true
 
     if not @isActive
       @breakpoints.push
         locations: [location]
       def.resolve()
     else
-      @api.debugger.setBreakpointByUrl(location.lineNumber, scriptUrl,
+      @api.debugger.setBreakpointByUrl(location.lineNumber, location.scriptUrl,
       (err, breakpointId, locations) =>
         debug('setBreakpointByUrl', err, breakpointId, locations)
         if err then console.error(err)
         @breakpoints.push(
           breakpointId: breakpointId
-          locations: locations.map (loc)=>@addPathToLocationObject(loc)
+          locations: locations
         )
         def.resolve()
       )
@@ -179,9 +171,10 @@ class DebuggerModel
       q.all(@breakpoints.map ({breakpointId})=>@removeBreakpoint(breakpointId))
     else @setBreakpoint(location)
 
-  getBreakpointsAtLocation: ({scriptPath, lineNumber}) ->
+  getBreakpointsAtLocation: ({scriptUrl, lineNumber}) ->
+    scriptId = getScriptIdForUrl(scriptUrl)
     @breakpoints.filter (bp)->
-      (scriptPath is bp.locations[0].scriptPath and
+      (scriptId is bp.locations[0].scriptId and
       lineNumber is bp.locations[0].lineNumber)
   getBreakpoints: -> [].concat @breakpoints
   clearAllBreakpoints: ->
@@ -193,12 +186,10 @@ class DebuggerModel
   ###
   currentPause: null
   getCurrentPauseLocations: ->
-    (@currentPause?.callFrames ? []).map ({location})=>
-      @addPathToLocationObject(location)
+    (@currentPause?.callFrames ? []).map ({location})->location
   
-  ###* @return {scriptPath, lineNumber} of current pause. ###
-  setCurrentPause: (@currentPause)->
-    @addPathToLocationObject(@currentPause.callFrames[0].location)
+  ###* @return {scriptId, lineNumber} of current pause. ###
+  setCurrentPause: (@currentPause)->@currentPause.callFrames[0].location
   clearCurrentPause: ->
     @currentPause = null
     

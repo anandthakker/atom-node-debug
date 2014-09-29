@@ -92,14 +92,20 @@ class DebuggerView extends View
   _connect: (wsUrl)->
     @debugger.connect wsUrl,
       onPause = (location)=>
-        @openPath location, =>
-          @status.text("Paused at line #{location.lineNumber} of #{location.scriptPath}")
+        @openPath location
+        .done =>
+          # coffeelint: disable=max_line_length
+          @status.text("Paused at line #{location.lineNumber} of #{@scriptPath(location)}")
+          # coffeelint: enable=max_line_length
           @updateMarkers()
-      , onResume = => @updateMarkers()
+      , onResume = =>
+        @updateMarkers()
+      , openScript = (loc)=>@openPath(loc) # TEMPORARY TODO
 
 
   toggleSession: (wsUrl) ->
     if @debugger.isActive
+      debug('end session')
       @endSession()
       return
 
@@ -147,15 +153,15 @@ class DebuggerView extends View
     @updateMarkers()
     @childprocess?.kill()
     @childprocess = null
-    @debugServer.removeAllListeners()
-    @debugServer.close()
+    @debugServer?.removeAllListeners()
+    @debugServer?.close()
     @debugServer = null
 
     @detach()
 
 
   markers: []
-  createMarker: (lineNumber, scriptPath)->
+  createMarker: (lineNumber)->
     line = @editor.lineTextForBufferRow(lineNumber)
     range = new Range(new Point(lineNumber,0),
                       new Point(lineNumber, line.length-1))
@@ -166,14 +172,11 @@ class DebuggerView extends View
   updateMarkers: ->
     debug('update markers')
     @destroyAllMarkers()
-    editorPath = @editor.getPath()
-    return unless editorPath?
-    editorPath = path.normalize(editorPath)
     
     # collect up the decorations we'll want by line.
     map = {} #not really a map, but meh.
-    for {lineNumber, scriptPath}, index in @debugger.getCurrentPauseLocations()
-      continue unless scriptPath is editorPath
+    for {lineNumber, scriptId}, index in @debugger.getCurrentPauseLocations()
+      continue unless @isActiveScript(scriptId)
       map[lineNumber] ?= ['debugger']
       map[lineNumber].push 'debugger-current-pointer'
       if index is 0 then map[lineNumber].push 'debugger-current-pointer--top'
@@ -181,14 +184,14 @@ class DebuggerView extends View
     breakpoints = @debugger.getBreakpoints()
     debug('breakpoint markers', breakpoints)
     for bp in @debugger.getBreakpoints()
-      {locations: [{lineNumber, scriptPath}]} = bp
-      continue unless scriptPath is editorPath
+      {locations: [{lineNumber, scriptId}]} = bp
+      continue unless @isActiveScript(scriptId)
       map[lineNumber] ?= ['debugger']
       map[lineNumber].push 'debugger-breakpoint'
 
     # create markers and decorate them with appropriate classes
     for lineNumber,classes of map
-      marker = @createMarker(lineNumber, editorPath)
+      marker = @createMarker(lineNumber)
       for cls in classes
         @editor.decorateMarker marker,
           type: ['gutter', 'line'],
@@ -198,24 +201,32 @@ class DebuggerView extends View
     marker.destroy() for marker in @markers
   
   toggleBreakpointAtCurrentLine: ->
+    scriptUrl = @editor.getPath() ? @editor.getBuffer().getRemoteUri()
+    return unless scriptUrl?
     @debugger.toggleBreakpoint(
       lineNumber: @editor.getCursorBufferPosition().toArray()[0]
-      scriptPath: @editor.getPath()
+      scriptId: @debugger.getScriptIdForUrl(scriptUrl)
     ).then =>
       debug('toggled breakpoint')
       @updateMarkers()
       # TODO: breakpoint list
 
-  openPath: ({scriptPath, lineNumber}, done)->
-    done() if path.normalize(scriptPath) is path.normalize(@editor.getPath())
-    atom.workspaceView.open(scriptPath).done ->
-      if editorView = atom.workspaceView.getActiveView()
-        position = new Point(lineNumber)
-        editorView.scrollToBufferPosition(position, center: true)
-        editorView.editor.setCursorBufferPosition(position)
-        editorView.editor.moveCursorToFirstCharacterOfLine()
-        @editor = atom.workspace.getActiveEditor()
-      done()
+  openPath: ({scriptId, lineNumber})->
+    debug('open script', scriptId, lineNumber)
+    done() if @isActiveScript(scriptId)
+    
+    path = @scriptPath(scriptId)
+    debug(path)
+    if /https?:/.test path then path = url.format
+      protocol: 'atom'
+      slashes: true
+      hostname: 'debugger'
+      pathname: 'open'
+      query:
+        url: path
+      
+    atom.workspaceView.open(path,initialLine: lineNumber)
+    .then (@editor)->#just save editor.
   
   serialize: ->
 
@@ -225,3 +236,27 @@ class DebuggerView extends View
     @localCommandMap = null
     @endSession()
     @destroyAllMarkers()
+  
+  # Private util functions
+
+  scriptUrl: (scriptIdOrLocation)->
+    if typeof scriptIdOrLocation is 'object'
+      @scriptUrl(scriptIdOrLocation.scriptId)
+    else
+      @debugger.getScript(scriptIdOrLocation).sourceURL
+  
+  scriptPath: (scriptIdOrLocation)->
+    origUrl = @scriptUrl(scriptIdOrLocation)
+    earl = url.parse(origUrl, true)
+    if earl.protocol is 'file://' then earl.pathname
+    else origUrl
+    
+  isActiveScript: (scriptIdOrLocation)->
+    editorPath = @editor?.getPath()
+    return unless editorPath?
+    
+    path.normalize(editorPath) is path.normalize(scriptPath(scriptIdOrLocation))
+    
+
+    
+  

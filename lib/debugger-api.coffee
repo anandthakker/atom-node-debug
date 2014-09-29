@@ -92,7 +92,7 @@ class DebuggerApi extends DebuggerEventHandler
     super
       
   connect: (wsUrl)->
-    debug('attempt to connect')
+    debug('attempt to connect', wsUrl)
     ws = new WebSocket(wsUrl)
     @backend.setWebSocket(ws)
     ws.once 'open', =>

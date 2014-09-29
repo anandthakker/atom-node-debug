@@ -10,18 +10,22 @@ class ChooseDebuggerView extends View
 
   detaching: false
 
-  initialize: (@debuggerView) ->
+  initialize: (@debuggerView, state) ->
     atom.workspaceView.command 'debugger:connect', =>
       @toggle()
       false
 
-    # @miniEditor.hiddenInput.on 'focusout', => @detach() unless @detaching
+    @miniEditor.setText(state?.text ? '')
+
     atom.workspaceView.on 'core:confirm', => @confirm()
     atom.workspaceView.on 'core:cancel', => @detach()
 
     @miniEditor.getModel().on 'will-insert-text', ({cancel, text}) ->
       # cancel() unless text.match(/[0-9]/)
       # TODO: validate ws url.
+      
+  serialize: ->
+    text: @miniEditor.getText()
 
   toggle: ->
     if @hasParent()
@@ -34,7 +38,6 @@ class ChooseDebuggerView extends View
 
     @detaching = true
     miniEditorFocused = @miniEditor.isFocused
-    @miniEditor.setText('')
 
     super
 
@@ -42,16 +45,9 @@ class ChooseDebuggerView extends View
     @detaching = false
 
   confirm: ->
+    return unless @hasParent()
     debugPort = @miniEditor.getText()
-    # editorView = atom.workspaceView.getActiveView()
-
     @detach()
-
-    if debugPort.length
-      debugPort = parseInt(debugPort)
-    else
-      debugPort = null
-    
     # This is where we start the debugger.
     @debuggerView.toggleSession(debugPort)
 
