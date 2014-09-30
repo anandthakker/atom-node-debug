@@ -3,6 +3,8 @@
 Debug javascript code from right within the editor: set breakpoints, step through code,
 inspect variable/expression values<sup><a id="ref1" href="#note1">1</a></sup>.
 
+**UPDATE:** You can now (just barely) attach to Chrome!  See [instructions](#Chrome) below.
+
 We all love (and couldn't live without) the Chrome inspector, but sometimes you just don't want
 to open up your whole source tree in another browser.
 
@@ -14,13 +16,17 @@ Notes:
 ![](https://raw.githubusercontent.com/anandthakker/atom-node-debug/master/screenshot.gif)
 
 # Features
-- Run debugger on current file, or attach to an existing debugger session.
+- Run debugger on current file, or attach to an existing `node --debug` session.
+- Attach to a `Chrome --remote-debugging-port` session to debug javascript running
+  in the browser.
 - Step through (over, into, out) node code.
 - Rudimentary console output.
 
 # Roadmap
 
-- [ ] Ability to attach to Chrome debugger in addition to Node one. **ALMOST THERE!**
+- [x] *LANDED*: Ability to attach to Chrome debugger in addition to Node one.
+  - [ ] Next: intelligently open *local* source files from current project, even
+        when they're being served via http.
 - [x] Open up a new tab when execution leaves current source.
 - [x] Persist breakpoints across debugger sessions.
 - [ ] Breakpoint list
@@ -56,7 +62,7 @@ You want the *front end* port--8080 in the example above.
 
 
 ## Chrome
-**IN PROGRESS**
+**IN ALPHA**
 
 ```bash
 $ Google\\ Chrome\\ Canary --remote-debugging-port=9222
@@ -76,7 +82,13 @@ $ curl http://localhost:9222/json
 }, ... ]
 ```
 
-In this case, you want the `webSocketDebuggerUrl` starting with `ws://...`.
+Coppy the `webSocketDebuggerUrl` starting with `ws://...`.
+
+Then use cmd-shift-P 'Debugger:Connect' (ctrl-opt-cmd-I by default) and paste in
+the web socket url you just copied.
+
+Once the debugger connects, it'll grab source files from Chrome and open them in
+the editor.  Set breakpoints and reload the page to debug!
 
 
 # Contributing

@@ -1,3 +1,5 @@
+# require this up here so that it can register with the deserializer manager.
+
 module.exports =
   chooseDebuggerView: null
   debuggerView: null
@@ -8,20 +10,20 @@ module.exports =
     # https://discuss.atom.io/t/how-to-speed-up-your-packages/10903
     
     require('debug').enable([
-      'atom-debugger:backend'
-      'atom-debugger:api'
-      'atom-debugger:model'
-      'atom-debugger:view'
-      'atom-debugger:package'
+      # 'atom-debugger:backend'
+      # 'atom-debugger:api'
+      # 'atom-debugger:model'
+      # 'atom-debugger:view'
+      # 'atom-debugger:package'
     ].join(','))
 
     debug = require('debug')('atom-debugger:package')
     url = require('url')
     
+    RemoteTextBuffer = require './remote-text-buffer'
     ChooseDebuggerView = require './choose-debugger-view'
     DebuggerView = require './debugger-view'
     DebuggerModel = require './debugger-model'
-    RemoteTextBuffer = require './remote-text-buffer'
 
     debug('activating debugger package')
     
@@ -41,7 +43,7 @@ module.exports =
         host is 'debugger' and
         pathname is '/open')
 
-      RemoteTextBuffer.open(query.url, opts)
+      RemoteTextBuffer.open(uri, query.url, opts)
         
   deactivate: ->
     @chooseDebuggerView.destroy()

@@ -1,7 +1,9 @@
-debug = require('debug')('atom-debugger:view')
 spawn = require('child_process').spawn
 path = require('path')
 url = require('url')
+
+debug = require('debug')('atom-debugger:view')
+q = require 'q'
 
 {View, Range, Point} = require 'atom'
 
@@ -100,7 +102,7 @@ class DebuggerView extends View
           @updateMarkers()
       , onResume = =>
         @updateMarkers()
-      , openScript = (loc)=>@openPath(loc) # TEMPORARY TODO
+      , openScript = (args...)=>@openPath(args...) # TEMPORARY TODO
 
 
   toggleSession: (wsUrl) ->
@@ -184,10 +186,10 @@ class DebuggerView extends View
     breakpoints = @debugger.getBreakpoints()
     debug('breakpoint markers', breakpoints)
     for bp in @debugger.getBreakpoints()
-      {locations: [{lineNumber, scriptId}]} = bp
-      continue unless @isActiveScript(scriptId)
-      map[lineNumber] ?= ['debugger']
-      map[lineNumber].push 'debugger-breakpoint'
+      {locations: [firstLocation]} = bp
+      continue unless @isActiveScript(firstLocation)
+      map[firstLocation.lineNumber] ?= ['debugger']
+      map[firstLocation.lineNumber].push 'debugger-breakpoint'
 
     # create markers and decorate them with appropriate classes
     for lineNumber,classes of map
@@ -201,31 +203,36 @@ class DebuggerView extends View
     marker.destroy() for marker in @markers
   
   toggleBreakpointAtCurrentLine: ->
-    scriptUrl = @editor.getPath() ? @editor.getBuffer().getRemoteUri()
-    return unless scriptUrl?
+    scriptUrl = @editorUrl()
+    
+    debug('toggling breakpoint for', scriptUrl)
     @debugger.toggleBreakpoint(
       lineNumber: @editor.getCursorBufferPosition().toArray()[0]
-      scriptId: @debugger.getScriptIdForUrl(scriptUrl)
-    ).then =>
+      scriptUrl: scriptUrl
+    ).done =>
       debug('toggled breakpoint')
       @updateMarkers()
       # TODO: breakpoint list
+    , (error)->
+      debug(error)
 
-  openPath: ({scriptId, lineNumber})->
+  openPath: ({scriptId, lineNumber}, options={})->
     debug('open script', scriptId, lineNumber)
-    done() if @isActiveScript(scriptId)
+    return q(@editor) if @isActiveScript(scriptId)
     
     path = @scriptPath(scriptId)
-    debug(path)
-    if /https?:/.test path then path = url.format
+    if /^https?:/.test path then path = url.format
       protocol: 'atom'
       slashes: true
       hostname: 'debugger'
       pathname: 'open'
       query:
         url: path
+    else if /^file/.test path
+      path = url.parse(path).pathname
       
-    atom.workspaceView.open(path,initialLine: lineNumber)
+    options.initialLine = lineNumber
+    atom.workspaceView.open(path, options)
     .then (@editor)->#just save editor.
   
   serialize: ->
@@ -236,14 +243,31 @@ class DebuggerView extends View
     @localCommandMap = null
     @endSession()
     @destroyAllMarkers()
+
+    # TODO: ???
+    atom.workspace.getPaneItems().forEach (item)->
+      if item instanceof RemoteTextBuffer
+        atom.workspace.getActivePane().destroyItem(item)
+
   
   # Private util functions
 
+  editorUrl: ->
+    edPath = @editor?.getPath() ? null
+    if(edPath != null)
+      url.format(
+        protocol: 'file'
+        slashes: 'true'
+        pathname: edPath
+      )
+    else
+      @editor?.getBuffer()?.getRemoteUri() ? ''
+
   scriptUrl: (scriptIdOrLocation)->
     if typeof scriptIdOrLocation is 'object'
-      @scriptUrl(scriptIdOrLocation.scriptId)
+      scriptIdOrLocation.scriptUrl ? @scriptUrl(scriptIdOrLocation.scriptId)
     else
-      @debugger.getScript(scriptIdOrLocation).sourceURL
+      @debugger?.getScriptUrlForId(scriptIdOrLocation)
   
   scriptPath: (scriptIdOrLocation)->
     origUrl = @scriptUrl(scriptIdOrLocation)
@@ -252,10 +276,8 @@ class DebuggerView extends View
     else origUrl
     
   isActiveScript: (scriptIdOrLocation)->
-    editorPath = @editor?.getPath()
-    return unless editorPath?
-    
-    path.normalize(editorPath) is path.normalize(scriptPath(scriptIdOrLocation))
+    editorUrl = @editorUrl()
+    editorUrl? and (editorUrl is @scriptUrl(scriptIdOrLocation))
     
 
     

@@ -114,15 +114,24 @@ class DebuggerModel
     debug('added script', scriptObject)
     
     # TEMPORARY!  TODO
-    @openScript({scriptId: scriptObject.scriptId, lineNumber: 0})
-    
+    if /^http/.test scriptObject.sourceURL
+      @openScript({scriptId: scriptObject.scriptId, lineNumber: 0},
+        {changeFocus: false})
+
     
   clearScripts: () -> @scriptCache = {}
   getScript: (id) -> @scriptCache[''+id]
+
+  # TODO: clean this up. Currently, it relies on scriptId defaulting
+  # to scriptUrl when the debugger isn't running, which is fragile and
+  # stupid.
   getScriptIdForUrl: (url)->
     for id,script of @scriptCache
       if script.sourceURL is url then return id
-    return null
+    return url
+  getScriptUrlForId: (id)->
+    script = @getScript(id)
+    @getScript(id)?.sourceURL ? id
 
 
   ###
@@ -132,28 +141,34 @@ class DebuggerModel
   breakpoints: []
   
   registerBreakpoints: (breakpoints) ->
-    q.all(@breakpoints.map ({breakpointId, locations})->
-      q.all(locations.map (location)=>@setBreakpoint(locations))
+    q.all(breakpoints.map ({breakpointId, locations})=>
+      q.all(locations.map (loc)=>
+        @setBreakpoint(loc))
     )
     
-  setBreakpoint: (location)->
+  setBreakpoint: ({lineNumber, scriptUrl})->
+    debug('setBreakpoint', location)
     def = q.defer()
 
     if not @isActive
-      @breakpoints.push
-        locations: [location]
+      @breakpoints.push locations:[{lineNumber, scriptUrl, scriptId: scriptUrl}]
       def.resolve()
     else
-      @api.debugger.setBreakpointByUrl(location.lineNumber, location.scriptUrl,
-      (err, breakpointId, locations) =>
-        debug('setBreakpointByUrl', err, breakpointId, locations)
-        if err then console.error(err)
-        @breakpoints.push(
-          breakpointId: breakpointId
-          locations: locations
+      @api.debugger.setBreakpointByUrl(
+        lineNumber, scriptUrl,
+        (err, breakpointId, locations) =>
+          debug('setBreakpointByUrl', err, breakpointId, locations)
+          if err then console.error(err)
+          # tag the returned breakpoint locations with scriptUrl
+          # so that we'll still know what file it's in when we
+          # cache it.
+          loc.scriptUrl = scriptUrl for loc in locations
+          # now save it to the list.
+          @breakpoints.push
+            breakpointId: breakpointId
+            locations: locations
+          def.resolve()
         )
-        def.resolve()
-      )
       
     def.promise
     
@@ -165,14 +180,16 @@ class DebuggerModel
     @breakpoints = @breakpoints.filter ({breakpointId})->breakpointId isnt id
     def.promise
   
-  toggleBreakpoint: (location)->
-    existing = @getBreakpointsAtLocation(location)
+  toggleBreakpoint: ({scriptUrl, lineNumber})->
+    debug('toggleBreakpoint', scriptUrl, lineNumber)
+    existing = @getBreakpointsAtLocation({scriptUrl, lineNumber})
     if existing.length > 0
       q.all(@breakpoints.map ({breakpointId})=>@removeBreakpoint(breakpointId))
-    else @setBreakpoint(location)
+    else @setBreakpoint({scriptUrl, lineNumber})
 
   getBreakpointsAtLocation: ({scriptUrl, lineNumber}) ->
-    scriptId = getScriptIdForUrl(scriptUrl)
+    debug('getBreakpointsAtLocation', scriptUrl, lineNumber)
+    scriptId = @getScriptIdForUrl(scriptUrl) ? scriptUrl
     @breakpoints.filter (bp)->
       (scriptId is bp.locations[0].scriptId and
       lineNumber is bp.locations[0].lineNumber)
