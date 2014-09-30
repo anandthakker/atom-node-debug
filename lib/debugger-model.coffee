@@ -46,6 +46,7 @@ class DebuggerModel
     if @isActive then throw new Error('Already connected.')
     @onPause ?= ->
     @onResume ?= ->
+    @openScript ?= ->
 
     debug('starting debugger', wsUrl)
     # the current list of breakpoints is from before this
@@ -57,14 +58,11 @@ class DebuggerModel
 
     @api.once 'connect', =>
       @isActive = true
-      @api.debugger.enable(null, (err, result)->
-        debug('enabled returned', err, result)
-        if(err) then console.error err
-        else debug('debugger enabled')
-      )
-      @api.page.getResourceTree(null, (err, result)->
-        debug('getResourceTree returned!', err, result)
-      )
+      
+      debuggerEnabledPromise = q.all [
+        q.ninvoke @api.debugger, 'enable', null
+        q.ninvoke @api.page, 'getResourceTree', null
+      ]
       
     @api.once 'close', => @close()
 
@@ -95,6 +93,8 @@ class DebuggerModel
     )
     
     @api.on 'scriptParsed', (scriptObject)=>@addScript(scriptObject)
+
+    debuggerEnabledPromise
 
 
   close: ->
