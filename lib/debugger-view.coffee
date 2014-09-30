@@ -94,6 +94,7 @@ class DebuggerView extends View
   _connect: (wsUrl)->
     @debugger.connect wsUrl,
       onPause = (location)=>
+        atom.workspaceView.addClass('debugger--paused')
         @openPath location
         .done =>
           # coffeelint: disable=max_line_length
@@ -101,6 +102,7 @@ class DebuggerView extends View
           # coffeelint: enable=max_line_length
           @updateMarkers()
       , onResume = =>
+        atom.workspaceView.removeClass('debugger--paused')
         @updateMarkers()
       , openScript = (args...)=>@openPath(args...) # TEMPORARY TODO
 
@@ -177,8 +179,8 @@ class DebuggerView extends View
     
     # collect up the decorations we'll want by line.
     map = {} #not really a map, but meh.
-    for {lineNumber, scriptId}, index in @debugger.getCurrentPauseLocations()
-      continue unless @isActiveScript(scriptId)
+    for {lineNumber, scriptUrl}, index in @debugger.getCurrentPauseLocations()
+      continue unless @isActiveScript(scriptUrl)
       map[lineNumber] ?= ['debugger']
       map[lineNumber].push 'debugger-current-pointer'
       if index is 0 then map[lineNumber].push 'debugger-current-pointer--top'
@@ -216,11 +218,11 @@ class DebuggerView extends View
     , (error)->
       debug(error)
 
-  openPath: ({scriptId, lineNumber}, options={})->
-    debug('open script', scriptId, lineNumber)
-    return q(@editor) if @isActiveScript(scriptId)
+  openPath: ({scriptUrl, lineNumber}, options={})->
+    debug('open script', scriptUrl, lineNumber)
+    return q(@editor) if @isActiveScript(scriptUrl)
     
-    path = @scriptPath(scriptId)
+    path = @scriptPath(scriptUrl)
     if /^https?:/.test path then path = url.format
       protocol: 'atom'
       slashes: true
@@ -263,22 +265,14 @@ class DebuggerView extends View
     else
       @editor?.getBuffer()?.getRemoteUri() ? ''
 
-  scriptUrl: (scriptIdOrLocation)->
-    if typeof scriptIdOrLocation is 'object'
-      scriptIdOrLocation.scriptUrl ? @scriptUrl(scriptIdOrLocation.scriptId)
-    else
-      @debugger?.getScriptUrlForId(scriptIdOrLocation)
-  
-  scriptPath: (scriptIdOrLocation)->
-    origUrl = @scriptUrl(scriptIdOrLocation)
+  scriptPath: (urlOrLoc)->
+    origUrl = urlOrLoc.scriptUrl ? urlOrLoc
     earl = url.parse(origUrl, true)
     if earl.protocol is 'file://' then earl.pathname
     else origUrl
-    
-  isActiveScript: (scriptIdOrLocation)->
-    editorUrl = @editorUrl()
-    editorUrl? and (editorUrl is @scriptUrl(scriptIdOrLocation))
-    
 
+  isActiveScript: (urlOrLoc)->
+    return false unless (editorUrl = @editorUrl())?
+    editorUrl is (urlOrLoc.scriptUrl ? urlOrLoc)
     
   

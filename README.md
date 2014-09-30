@@ -31,7 +31,8 @@ Notes:
 - [x] Persist breakpoints across debugger sessions.
 - [ ] Breakpoint list
 - [ ] Variables
-- [ ] TESTS! (Although the underlying API has tests, the ui wiring doesn't.)
+- [ ] Structured console messages
+- [x] TESTS! (Although the underlying API has tests, the ui wiring doesn't.)
 - [ ] Jump up and down the stack
 - [ ] Eval
 - [ ] Save and continue
