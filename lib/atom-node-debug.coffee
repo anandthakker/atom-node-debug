@@ -9,15 +9,18 @@ module.exports =
     # Perform `require`s after activation -- ugly but faster, according to:
     # https://discuss.atom.io/t/how-to-speed-up-your-packages/10903
     
-    require('debug').enable([
+    debug = require('debug')
+    debug.enable([
       # 'atom-debugger:backend'
       # 'atom-debugger:api'
       # 'atom-debugger:model'
       # 'atom-debugger:view'
       # 'atom-debugger:package'
     ].join(','))
+    debug.log = console.debug.bind(console)
 
-    debug = require('debug')('atom-debugger:package')
+    debug = debug('atom-debugger:package')
+
     url = require('url')
     
     RemoteTextBuffer = require './remote-text-buffer'
