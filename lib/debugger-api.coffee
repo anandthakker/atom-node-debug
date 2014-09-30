@@ -102,7 +102,7 @@ class DebuggerApi extends DebuggerEventHandler
       debug('ws:close')
       @emit 'close'
     ws.on 'message', (message, flags)=>
-      debug(message, flags)
+      debug('message', {message, flags})
       @backend.dispatch(message)
   
   close: ->
