@@ -55,14 +55,15 @@ class DebuggerModel
     @breakpoints = []
 
     @api.connect(wsUrl)
-
+    
+    deferred = q.defer()
     @api.once 'connect', =>
       @isActive = true
-      
-      debuggerEnabledPromise = q.all [
+      q.all [
         q.ninvoke @api.debugger, 'enable', null
         q.ninvoke @api.page, 'getResourceTree', null
       ]
+      .then deferred.resolve
       
     @api.once 'close', => @close()
 
@@ -94,7 +95,7 @@ class DebuggerModel
     
     @api.on 'scriptParsed', (scriptObject)=>@addScript(scriptObject)
 
-    debuggerEnabledPromise
+    deferred.promise
 
 
   close: ->
