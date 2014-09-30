@@ -30,7 +30,7 @@ TODO: Respond to console output!
 module.exports=
 class DebuggerModel
   constructor: (state)->
-    @breakpoints = state.breakpoints ? []
+    @breakpoints = state?.breakpoints ? []
     @api = new DebuggerApi()
     
   serialize: ->
@@ -46,6 +46,7 @@ class DebuggerModel
     if @isActive then throw new Error('Already connected.')
     @onPause ?= ->
     @onResume ?= ->
+    @openScript ?= ->
 
     debug('starting debugger', wsUrl)
     # the current list of breakpoints is from before this
@@ -54,17 +55,15 @@ class DebuggerModel
     @breakpoints = []
 
     @api.connect(wsUrl)
-
+    
+    deferred = q.defer()
     @api.once 'connect', =>
       @isActive = true
-      @api.debugger.enable(null, (err, result)->
-        debug('enabled returned', err, result)
-        if(err) then console.error err
-        else debug('debugger enabled')
-      )
-      @api.page.getResourceTree(null, (err, result)->
-        debug('getResourceTree returned!', err, result)
-      )
+      q.all [
+        q.ninvoke @api.debugger, 'enable', null
+        q.ninvoke @api.page, 'getResourceTree', null
+      ]
+      .then deferred.resolve
       
     @api.once 'close', => @close()
 
@@ -95,6 +94,8 @@ class DebuggerModel
     )
     
     @api.on 'scriptParsed', (scriptObject)=>@addScript(scriptObject)
+
+    deferred.promise
 
 
   close: ->
