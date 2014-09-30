@@ -49,13 +49,8 @@ class DebuggerModel
     @openScript ?= ->
 
     debug('starting debugger', wsUrl)
-    # the current list of breakpoints is from before this
-    # session. hold them for now, hook 'em up once we've paused.
-    breaks = @breakpoints
-    @breakpoints = []
 
     @api.connect(wsUrl)
-    
     deferred = q.defer()
     @api.once 'connect', =>
       @isActive = true
@@ -63,6 +58,7 @@ class DebuggerModel
         q.ninvoke @api.debugger, 'enable', null
         q.ninvoke @api.page, 'getResourceTree', null
       ]
+      .then => @registerCachedBreakpoints()
       .then deferred.resolve
       
     @api.once 'close', => @close()
@@ -70,26 +66,13 @@ class DebuggerModel
     @api.on('resumed', =>
       debug('resumed')
       @clearCurrentPause()
-      atom.workspaceView.removeClass('debugger--paused')
       @onResume?()
       return
     )
     @api.on('paused', (breakInfo)=>
       debug('paused')
-
-      atom.workspaceView.addClass('debugger--paused')
       @setCurrentPause(breakInfo)
-
-      # this means we're paused for the first time in a new session.
-      # TODO: we're using the first pause as a chance to set breakpoints, but
-      # this isn't gonna work if we're not able to set debug-brk.
-      if breaks?.length > 0
-        @registerBreakpoints breaks
-        .then => @onPause(@getCurrentPauseLocations()[0])
-        breaks = null
-      else
-        @onPause(@getCurrentPauseLocations()[0])
-
+      @onPause(@getCurrentPauseLocations()[0])
       return
     )
     
@@ -130,9 +113,14 @@ class DebuggerModel
     for id,script of @scriptCache
       if script.sourceURL is url then return id
     return url
-  getScriptUrlForId: (id)->
-    script = @getScript(id)
-    @getScript(id)?.sourceURL ? id
+
+  _scriptUrl: (scriptIdOrLocation)->
+    if typeof scriptIdOrLocation is 'object'
+      scriptIdOrLocation.scriptUrl ? @_scriptUrl(scriptIdOrLocation.scriptId)
+    else
+      script = @getScript(scriptIdOrLocation)
+      @getScript(scriptIdOrLocation)?.sourceURL ? scriptIdOrLocation
+
 
 
   ###
@@ -140,35 +128,38 @@ class DebuggerModel
   ###
   # array of {breakpointId:id, locations:array of {scriptUrl, lineNumber}}
   breakpoints: []
-  
-  registerBreakpoints: (breakpoints) ->
-    q.all(breakpoints.map ({breakpointId, locations})=>
+  registerCachedBreakpoints: () ->
+    debug('registering cached breakpoints', @breakpoints)
+    breaks = @breakpoints
+    @breakpoints = []
+    q.all(breaks.map ({breakpointId, locations})=>
       q.all(locations.map (loc)=>
         @setBreakpoint(loc))
     )
     
   setBreakpoint: ({lineNumber, scriptUrl})->
-    debug('setBreakpoint', location)
+    debug('setBreakpoint', lineNumber, scriptUrl)
     def = q.defer()
 
     if not @isActive
-      @breakpoints.push locations:[{lineNumber, scriptUrl, scriptId: scriptUrl}]
-      def.resolve()
+      @breakpoints.push theBreakpoint=
+        locations: [{lineNumber, scriptUrl, scriptId: scriptUrl}]
+      def.resolve(theBreakpoint)
     else
       @api.debugger.setBreakpointByUrl(
         lineNumber, scriptUrl,
         (err, breakpointId, locations) =>
-          debug('setBreakpointByUrl', err, breakpointId, locations)
+          debug('setBreakpointByUrl response', err, breakpointId, locations)
           if err then console.error(err)
           # tag the returned breakpoint locations with scriptUrl
           # so that we'll still know what file it's in when we
           # cache it.
-          loc.scriptUrl = scriptUrl for loc in locations
+          loc.scriptUrl = @_scriptUrl(loc)  for loc in locations
           # now save it to the list.
-          @breakpoints.push
+          @breakpoints.push theBreakpoint=
             breakpointId: breakpointId
             locations: locations
-          def.resolve()
+          def.resolve(theBreakpoint)
         )
       
     def.promise
@@ -192,22 +183,29 @@ class DebuggerModel
     debug('getBreakpointsAtLocation', scriptUrl, lineNumber)
     scriptId = @getScriptIdForUrl(scriptUrl) ? scriptUrl
     @breakpoints.filter (bp)->
-      (scriptId is bp.locations[0].scriptId and
+      (scriptUrl is bp.locations[0].scriptUrl and
       lineNumber is bp.locations[0].lineNumber)
+      
   getBreakpoints: -> [].concat @breakpoints
-  clearAllBreakpoints: ->
-    @breakpoints = []
+  
+  clearAllBreakpoints: -> @breakpoints = []
   
   
   ###
   Current (paused) point in execution.
   ###
   currentPause: null
+
+  # Get the stack of locations at which we're currently paused.
+  # @return [{scriptId, scriptUrl, lineNumber}]
   getCurrentPauseLocations: ->
     (@currentPause?.callFrames ? []).map ({location})->location
   
-  ###* @return {scriptId, lineNumber} of current pause. ###
-  setCurrentPause: (@currentPause)->@currentPause.callFrames[0].location
+  ###* @return {scriptId, scriptUrl, lineNumber} of current pause. ###
+  setCurrentPause: (@currentPause)->
+    @currentPause.callFrames.forEach (cf)=>
+      cf.location.scriptUrl = @_scriptUrl(cf.location)
+    @currentPause.callFrames[0].location
   clearCurrentPause: ->
     @currentPause = null
     
