@@ -1,3 +1,10 @@
+2014-09-30 - 0.2.1 (cbee8c6)
+cbee8c6 (HEAD, master) Open remotely debugged scripts and fix regression in local debugging.
+1cd924a Avoid serializing/deserializing RemoteTextBuffer
+1b2a4f0 Open remote scripts when debugging a Chrome instance.
+afa5092 (tag: v0.2.0, origin/master) 0.2.0
+
+
 2014-09-29 - 0.2.0 (a226426)
 a226426 (HEAD, tag: v0.1.11, master) 0.1.11
 
