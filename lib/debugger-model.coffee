@@ -30,7 +30,7 @@ TODO: Respond to console output!
 module.exports=
 class DebuggerModel
   constructor: (state)->
-    @breakpoints = state.breakpoints ? []
+    @breakpoints = state?.breakpoints ? []
     @api = new DebuggerApi()
     
   serialize: ->
