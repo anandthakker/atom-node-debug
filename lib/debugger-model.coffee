@@ -1,11 +1,11 @@
 path = require('path')
 url = require('url')
 
-q = require('q')
+Q = require('q')
 _ = require('underscore-plus')
 debug = require('debug')('atom-debugger:model')
 
-DebuggerApi = require('./debugger-api')
+RemoteObject = require('./model/remote-object')
 
 ###
 Data & control for a debugging scenario and a particular session
@@ -29,9 +29,8 @@ TODO: Respond to console output!
 ###
 module.exports=
 class DebuggerModel
-  constructor: (state)->
+  constructor: (state, @api)->
     @breakpoints = state?.breakpoints ? []
-    @api = new DebuggerApi()
     
   serialize: ->
     breakpoints: @breakpoints
@@ -51,12 +50,12 @@ class DebuggerModel
     debug('starting debugger', wsUrl)
 
     @api.connect(wsUrl)
-    deferred = q.defer()
+    deferred = Q.defer()
     @api.once 'connect', =>
       @isActive = true
-      q.all [
-        q.ninvoke @api.debugger, 'enable', null
-        q.ninvoke @api.page, 'getResourceTree', null
+      Q.all [
+        Q.ninvoke @api.debugger, 'enable', null
+        Q.ninvoke @api.page, 'getResourceTree', null
       ]
       .then => @registerCachedBreakpoints()
       .then deferred.resolve
@@ -132,14 +131,14 @@ class DebuggerModel
     debug('registering cached breakpoints', @breakpoints)
     breaks = @breakpoints
     @breakpoints = []
-    q.all(breaks.map ({breakpointId, locations})=>
-      q.all(locations.map (loc)=>
+    Q.all(breaks.map ({breakpointId, locations})=>
+      Q.all(locations.map (loc)=>
         @setBreakpoint(loc))
     )
     
   setBreakpoint: ({lineNumber, scriptUrl})->
     debug('setBreakpoint', lineNumber, scriptUrl)
-    def = q.defer()
+    def = Q.defer()
 
     if not @isActive
       @breakpoints.push theBreakpoint=
@@ -165,7 +164,7 @@ class DebuggerModel
     def.promise
     
   removeBreakpoint: (id)->
-    def = q.defer()
+    def = Q.defer()
     if @isActive
       @api.debugger.removeBreakpoint(id, -> def.resolve())
     else def.resolve()
@@ -176,7 +175,7 @@ class DebuggerModel
     debug('toggleBreakpoint', scriptUrl, lineNumber)
     existing = @getBreakpointsAtLocation({scriptUrl, lineNumber})
     if existing.length > 0
-      q.all(@breakpoints.map ({breakpointId})=>@removeBreakpoint(breakpointId))
+      Q.all(@breakpoints.map ({breakpointId})=>@removeBreakpoint(breakpointId))
     else @setBreakpoint({scriptUrl, lineNumber})
 
   getBreakpointsAtLocation: ({scriptUrl, lineNumber}) ->
@@ -203,9 +202,16 @@ class DebuggerModel
   
   ###* @return {scriptId, scriptUrl, lineNumber} of current pause. ###
   setCurrentPause: (@currentPause)->
-    @currentPause.callFrames.forEach (cf)=>
+    @currentPause.callFrames
+    .forEach (cf)=>
       cf.location.scriptUrl = @_scriptUrl(cf.location)
+      cf.scopeChain.forEach (scope)=>
+        scope.object = new RemoteObject(scope.object, @api)
+      
     @currentPause.callFrames[0].location
+
   clearCurrentPause: ->
     @currentPause = null
     
+  getCallFrames: ->
+    [].concat @currentPause.callFrames

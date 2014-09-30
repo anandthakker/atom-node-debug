@@ -8,7 +8,6 @@ module.exports =
   activate: (state) ->
     # Perform `require`s after activation -- ugly but faster, according to:
     # https://discuss.atom.io/t/how-to-speed-up-your-packages/10903
-    
     debug = require('debug')
     debug.enable([
       # 'atom-debugger:backend'
@@ -18,19 +17,19 @@ module.exports =
       # 'atom-debugger:package'
     ].join(','))
     debug.log = console.debug.bind(console)
-
     debug = debug('atom-debugger:package')
 
     url = require('url')
     
+    DebuggerApi = require './debugger-api'
     RemoteTextBuffer = require './remote-text-buffer'
     ChooseDebuggerView = require './choose-debugger-view'
     DebuggerView = require './debugger-view'
     DebuggerModel = require './debugger-model'
 
     debug('activating debugger package')
-    
-    @debuggerModel = new DebuggerModel(state?.debuggerModelState ? {})
+        
+    @debuggerModel = new DebuggerModel(state?.debuggerModelState ? {}, new DebuggerApi())
     @debuggerView = new DebuggerView(@debuggerModel)
     @chooseDebuggerView = new ChooseDebuggerView(
       @debuggerView,

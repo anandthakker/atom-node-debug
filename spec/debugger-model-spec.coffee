@@ -1,19 +1,22 @@
 url = require 'url'
 Q = require 'q'
+_ = require 'underscore-plus'
 {nodeDebug, nodeInspector} = require './spec-helper'
 
 debug = require('debug')
 debug.enable([
   # 'atom-debugger:backend'
   # 'atom-debugger:api'
-  # 'atom-debugger:model'
+  'atom-debugger:model'
   # 'atom-debugger:view'
   # 'atom-debugger:package'
 ].join(','))
 debug.log = console.debug.bind(console)
 
 
+DebuggerApi = require '../lib/debugger-api.coffee'
 DebuggerModel = require '../lib/debugger-model.coffee'
+RemoteObject = require '../lib/model/remote-object'
 
 describe 'DebuggerModel', ->
 
@@ -42,7 +45,7 @@ describe 'DebuggerModel', ->
         wsUrl = url
         nodeInspectorServer = server
         debuggedProcess = child
-        debuggerModel = new DebuggerModel()
+        debuggerModel = new DebuggerModel({}, new DebuggerApi())
         
   afterEach ->
     debuggerModel?.close()
@@ -56,16 +59,44 @@ describe 'DebuggerModel', ->
       .then ->
         expect(debuggerModel.isActive).toBe(true) #duh
         
-  it 'receives pause event at a known script url after connecting', ->
-    waitsForPromise ->
-      debuggerModel.connect(wsUrl, onPause, onResume).then ->
-        waitsFor ->
-          onPause.callCount > 0
-        runs ->
-          [pauseLoc] = onPause.mostRecentCall.args
-          expect(pauseLoc.lineNumber).toBeDefined()
-          expect(pauseLoc.scriptUrl).toBe(scriptUrl)
 
+  describe 'pause', ->
+    beforeEach ->
+      waitsForPromise ->
+        debuggerModel.connect(wsUrl, onPause, onResume).then ->
+          waitsFor ->
+            onPause.callCount > 0
+
+    it 'yields a known script url on the initial pause', ->
+      [pauseLoc] = onPause.mostRecentCall.args
+      expect(pauseLoc.lineNumber).toBeDefined()
+      expect(pauseLoc.scriptUrl).toBe(scriptUrl)
+
+    it 'populates call frame\'s scope chain with RemoteObject wrappers', ->
+      frames = debuggerModel.getCallFrames()
+      topScope = frames[0].scopeChain[0].object
+      expect(topScope?.constructor?.name).toBe 'RemoteObject'
+            
+    fit 'loads remote object properties and wraps them with' +
+    'RemoteObject wrappers as appropriate', ->
+      waitsForPromise ->
+        debuggerModel.toggleBreakpoint({scriptUrl, lineNumber: 3})
+        .then -> debuggerModel.resume()
+        .then ->
+          waitsFor ->
+            onPause.callCount is 2
+        .then ->
+          frames = debuggerModel.getCallFrames()
+          topScope = frames[0].scopeChain[0].object
+          topScope.load()
+        .then (scope)->
+          expect(scope.properties).toBeDefined() #populated
+          y = _.find scope.properties, (prop)-> #has 'y' from script
+            prop.name is 'y'
+          expect(y?.value?.value).toBe(10)
+          for prop in scope.properties # child remote objects are wrapped
+            if prop.value?.type is 'object'
+              expect(prop.value.constructor?.name).toBe 'RemoteObject'
 
   describe 'breakpoints', ->
     checkBreakpoints = (count)->

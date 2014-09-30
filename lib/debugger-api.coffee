@@ -82,10 +82,12 @@ class DebuggerApi extends DebuggerEventHandler
     @debugger = {}
     @page = {}
     @console = {}
+    @runtime = {}
     @backend = new Backend(
       DebuggerAgent: @debugger
       PageAgent: @page
       ConsoleAgent: @console
+      RuntimeAgent: @runtime
     )
     registerBackendCommands(@backend)
     @backend.registerDebuggerDispatcher(this)
