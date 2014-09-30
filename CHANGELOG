@@ -1,3 +1,10 @@
+2014-09-30 - 0.2.2 (7a46601)
+7a46601 (HEAD, master) Add first 9 tests.
+fe0f551 Clean up debug logging
+bd0bdb0 Fix up promises and some clutter in the api.
+1e5da47 (tag: v0.2.1, origin/master) 0.2.1
+
+
 2014-09-30 - 0.2.1 (cbee8c6)
 cbee8c6 (HEAD, master) Open remotely debugged scripts and fix regression in local debugging.
 1cd924a Avoid serializing/deserializing RemoteTextBuffer
