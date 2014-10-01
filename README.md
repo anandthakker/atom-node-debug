@@ -30,7 +30,7 @@ Notes:
 - [x] Open up a new tab when execution leaves current source.
 - [x] Persist breakpoints across debugger sessions.
 - [ ] Breakpoint list
-- [ ] Variables
+- [x] Variables
 - [ ] Structured console messages
 - [x] TESTS! (Although the underlying API has tests, the ui wiring doesn't.)
 - [ ] Jump up and down the stack
