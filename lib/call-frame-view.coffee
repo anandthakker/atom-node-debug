@@ -6,14 +6,15 @@ module.exports =
 class CallFrameView extends ScrollView
   
   @content: ->
-    @div class: 'debugger-call-frame', =>
-      @h2 =>
+    @div class: 'tool-panel bordered debugger-call-frame', =>
+      @div class: 'panel-heading', =>
         @a outlet: 'link', =>
           @span outlet: 'name'
           @span class: 'url', outlet: 'url'
           @span class: 'line', outlet: 'line'
-      @ul outlet: 'scopes'
-      @div outlet: 'thisObject'
+      @div class: 'panel-body', =>
+        @ul outlet: 'scopes'
+        @div outlet: 'thisObject'
 
   setModel: (@model)->
     @model.scopeChain[0].object.load()

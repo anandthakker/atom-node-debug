@@ -2,7 +2,7 @@ spawn = require('child_process').spawn
 path = require('path')
 url = require('url')
 
-{View, Range, Point} = require 'atom'
+{ScrollView, Range, Point} = require 'atom'
 
 q = require 'q'
 DebugServer = require("node-inspector/lib/debug-server").DebugServer
@@ -15,26 +15,29 @@ CallFrameView = require('./call-frame-view')
 
 
 module.exports =
-class DebuggerView extends View
+class DebuggerView extends ScrollView
 
   @content: ->
-    @div class: "tool-panel panel-bottom padded debugger debugger-ui", =>
-      @div class: "panel-heading", =>
-        @div class: 'btn-toolbar pull-left', =>
-          @div class: 'btn-group', =>
+    @div class: "pane-item", =>
+      @div class: "debugger debugger-ui", =>
+        @div class: "panel-heading", =>
+          @div class: 'btn-group debugger-detach', =>
             @button 'Detach',
               click: 'endSession'
               class: 'btn'
-        @div class: 'btn-toolbar pull-right', =>
-          @div class: 'btn-group', =>
-            @subview 'continue', new CommandButtonView('continue')
-            @subview 'stepOver', new CommandButtonView('step-over')
-            @subview 'stepInto', new CommandButtonView('step-into')
-            @subview 'stepOut', new CommandButtonView('step-out')
-        @div class: 'debugger-status', 'Debugging', outlet: 'status'
-      @div class: "panel-body padded", =>
-        @div class: 'debugger-console', outlet: 'console'
-        @subview 'callFrames', new CallFrameView()
+          @div class: 'debugger-status', outlet: 'status', 'Debugging'
+          @div class: 'btn-toolbar debugger-control-flow', =>
+            @div class: 'btn-group', =>
+              @subview 'continue', new CommandButtonView('continue')
+              @subview 'stepOver', new CommandButtonView('step-over')
+              @subview 'stepInto', new CommandButtonView('step-into')
+              @subview 'stepOut', new CommandButtonView('step-out')
+        @div class: "panel-body", =>
+          @div class: 'tool-panel bordered debugger-console', =>
+            @div class: 'panel-heading', 'Console'
+            @div class: 'panel-body', outlet: 'console'
+          @div class: 'debugger-call-frames', =>
+            @subview 'callFrames', new CallFrameView()
 
   ###
   To make up for the lack of a good central command manager
@@ -52,6 +55,8 @@ class DebuggerView extends View
   Wire up view commands to DebuggerApi.
   ###
   initialize: (@debugger) ->
+    super
+    
     @activePaneItemChanged()
     atom.workspaceView.on 'pane-container:active-pane-item-changed', =>
       @activePaneItemChanged()

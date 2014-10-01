@@ -10,6 +10,12 @@
 @gutter-color-current-pointer-stack: darken(@background-color-info, 30%);
 
 
+.clearfix{
+  zoom:1;
+  &:before, &:after{ content:""; display:table; }
+  &:after{ clear: both; }
+}
+
 // Set on any element currently being used/highlighted/etc. by this package.
 // Other more specific styles will also be prefixed by 'debugger'
 .debugger {
@@ -17,7 +23,28 @@
 }
 
 .debugger-ui {
-  max-height: 50%;
+  
+  & > .panel-heading {
+    .clearfix();
+    
+    //weird off-center button spacing.
+    .btn { margin-bottom: -7px; }
+    .debugger-detach,
+    .debugger-status {
+      float: left;
+    }
+    .debugger-control-flow {
+      float: right;
+    }
+    .debugger-status {
+      padding: 0 1em;
+    }
+  }
+  
+  & > .panel-body {
+    padding: 0;
+  }
+
 }
 
 .debugger--show-breakpoints {
@@ -38,6 +65,47 @@
 //TODO: this is being overused--both for paused and for
 // when there's an active debugging session (i.e. even between pauses).
 .debugger--paused {
+  
+  .debugger-console {
+    width: 50%;
+    float: left;
+    overflow: scroll;
+  }
+  
+  .debugger-call-frames {
+    width: 50%;
+    float: right;
+    overflow: scroll;
+
+    .debugger-call-frame {
+      .line:before {content: ':'}
+
+      ul {
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+      }
+      
+      dl {
+        dd, dt {
+          display: inline-block;
+          vertical-align: top;
+        }
+        dt {
+          width: 25%;
+          text-align: right;
+          padding-right: 2em;
+        }
+        dd { width: 75%; }
+      }
+    }
+  }
+  
+  
+  
+  //
+  // MARKERS
+  //
   
   // decoration for the lines of code anywhere in the call stack
   // in the currently paused execution state.
@@ -62,53 +130,11 @@
     border-width: 1px 0;
   }
   
-  .debugger-console {
-    width: 49%;
-    display: inline-block;
-    vertical-align: top;
-    max-height: 10em;
-    overflow: scroll;
-  }
-  .debugger-call-frame {
-    h2 {
-      font-size: 1em;
-      text-align: right;
-    }
-    .line:before {
-      content: ':'
-    }
-    
-    ul {
-      list-style-type: none;
-      margin: 0;
-      padding: 0;
-    }
-    
-    dl {
-      dd, dt {
-        display: inline-block;
-        vertical-align: top;
-      }
-      dt {
-        width: 25%;
-        text-align: right;
-        padding-right: 2em;
-      }
-      dd {
-        width: 75%;
-      }
-    }
-    
-    width: 49%;
-    display: inline-block;
-    vertical-align: top;
-    
-    overflow: scroll;
-  }
+
 }
   
-  // in the gutter, we want breakpoint style to win over current exec. pointer
-  // so that we can still see that the line is a breakpoint.
+// in the gutter, we want breakpoint style to win over current exec. pointer
+// so that we can still see that the line is a breakpoint.
 .debugger--show-breakpoints.debugger--paused {
   .debugger-breakpoint.line-number {
     background-color: @gutter-color-breakpoint;
