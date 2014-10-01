@@ -77,7 +77,7 @@ describe 'DebuggerModel', ->
       topScope = frames[0].scopeChain[0].object
       expect(topScope?.constructor?.name).toBe 'RemoteObject'
             
-    fit 'loads remote object properties and wraps them with' +
+    it 'loads remote object properties and wraps them with' +
     'RemoteObject wrappers as appropriate', ->
       waitsForPromise ->
         debuggerModel.toggleBreakpoint({scriptUrl, lineNumber: 3})

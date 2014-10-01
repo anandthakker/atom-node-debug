@@ -1,13 +1,15 @@
-# require this up here so that it can register with the deserializer manager.
 
 module.exports =
-  chooseDebuggerView: null
+  chooseView: null
   debuggerView: null
   debuggerModel: null
-
+  
   activate: (state) ->
-    # Perform `require`s after activation -- ugly but faster, according to:
-    # https://discuss.atom.io/t/how-to-speed-up-your-packages/10903
+
+    #
+    # Require modules
+    #
+    
     debug = require('debug')
     debug.enable([
       # 'atom-debugger:backend'
@@ -28,31 +30,79 @@ module.exports =
     DebuggerModel = require './debugger-model'
 
     debug('activating debugger package')
-        
-    @debuggerModel = new DebuggerModel(state?.debuggerModelState ? {}, new DebuggerApi())
-    @debuggerView = new DebuggerView(@debuggerModel)
-    @chooseDebuggerView = new ChooseDebuggerView(
-      @debuggerView,
-      state.chooseDebuggerViewState)
+    
+    #
+    # Create/deserialize the main model.
+    #
+
+    @debuggerModel = new DebuggerModel(state?.debuggerModelState ? {},
+      new DebuggerApi())
+    
+    #
+    # Set up commands
+    #
+    
+    atom.workspaceView.command 'debugger:connect', =>
+      @chooseView ?= new ChooseDebuggerView(state.chooseViewState)
+      @chooseView.toggle()
+      .done ({portOrUrl, cancel}) => unless cancel
+        @stopDebugging()
+        @startDebugging(portOrUrl)
+    
+    atom.workspaceView.command 'debugger:open-debug-view', '.workspace', =>
+      
+    atom.workspaceView.command 'debugger:toggle-debug-session', '.editor', =>
+      @toggleDebugging()
+
+    #
+    # Set up routes for atom://debugger/* uris
+    #
 
     atom.workspace.registerOpener (uri,opts)=>
       {protocol, host, pathname, query} = url.parse(uri, true)
-      debug('opener', uri, protocol, host, pathname, query)
       return unless (protocol is 'atom:' and host is 'debugger')
 
-      # seamlessly open remote sources in an editor for debugging browser scripts.
-      if pathname is '/open'
-        RemoteTextBuffer.open(uri, query.url, opts)
-      
-      # if pathname is '/callframes'
-      #   @debuggerView.callFrames
+      switch pathname
+        # open remote sources in a TextEditor for debugging browser scripts.
+        when '/open' then RemoteTextBuffer.open(uri, query.url, opts)
+        when '','/'
+          @debuggerView ? (@debuggerView = new DebuggerView(@debuggerModel))
 
-        
+  
+  toggleDebugging: ->
+    if(@debuggerView?)
+      @openDebugView()
+      .done => @debuggerView.toggleSession()
+    else @startDebugging()
+  
+  stopDebugging: ->
+    @debuggerView?.endSession()
+  
+  openDebugView: ->
+    activePane = atom.workspace.getActivePane()
+    pane = atom.workspace.paneForUri('atom://debugger/')
+    pane ?= activePane.splitDown({copyActiveItem: false})
+    activePane.activate() #reactivate the editor we started from.
+    atom.workspace.openUriInPane('atom://debugger/',
+      pane, {changeFocus: false})
+
+  startDebugging: (portOrUrl)->
+    @openDebugView()
+    .done (debuggerView)->
+      debuggerView.endSession()
+      debuggerView.toggleSession(portOrUrl)
+
   deactivate: ->
-    @chooseDebuggerView.destroy()
-    @debuggerView.destroy()
-    atom.workspace.unregisterOpener @remoteSourceOpener
+    @stopDebugging()
+    @chooseView?.destroy()
+    @debuggerView?.destroy()
+    @debuggerModel.close()
+    
+    # TODO: ???
+    atom.workspace.getPaneItems().forEach (item)->
+      if item instanceof RemoteTextBuffer
+        atom.workspace.getActivePane().destroyItem(item)
 
   serialize: ->
-    chooseDebuggerViewState: @chooseDebuggerView.serialize()
+    chooseViewState: @chooseView?.serialize() ? {}
     debuggerModelState: @debuggerModel.serialize()

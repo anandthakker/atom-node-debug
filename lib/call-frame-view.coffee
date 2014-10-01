@@ -30,7 +30,6 @@ class CallFrameView extends ScrollView
         @li =>
           @dl =>
             for prop in scope.object.properties
-              console.log prop
               @dt class: 'source js variable', prop.name
               @dd class: 'source js', prop.value?.description
       theThis = scope.thisObject

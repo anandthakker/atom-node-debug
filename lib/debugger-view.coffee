@@ -2,13 +2,12 @@ spawn = require('child_process').spawn
 path = require('path')
 url = require('url')
 
-debug = require('debug')('atom-debugger:view')
-q = require 'q'
-
 {View, Range, Point} = require 'atom'
 
+q = require 'q'
 DebugServer = require("node-inspector/lib/debug-server").DebugServer
 nodeInspectorConfig = require("node-inspector/lib/config")
+debug = require('debug')('atom-debugger:view')
 
 DebuggerApi = require('./debugger-api')
 CommandButtonView = require('./command-button-view')
@@ -60,8 +59,6 @@ class DebuggerView extends View
     atom.workspaceView.addClass('debugger')
     atom.workspaceView.addClass('debugger--show-breakpoints')
     
-    @registerCommand 'debugger:toggle-debug-session',
-    '.editor', =>@toggleSession()
     @registerCommand 'debugger:step-into',
     '.debugger--paused', => @debugger.stepInto()
     @registerCommand 'debugger:step-over',
@@ -79,14 +76,14 @@ class DebuggerView extends View
 
     btn.commandsReady() for btn in [@continue,@stepOver,@stepOut,@stepInto]
 
+  # Needed for opening in a pane.
+  getTitle: ->
+    "Debug"
 
   ###
   View control logic.
   ###
   activePaneItemChanged: ->
-    @editor = null
-    @destroyAllMarkers()
-
     #TODO: what about split panes?
     paneItem = atom.workspace.getActivePaneItem()
     if paneItem?.getBuffer?()?
@@ -96,72 +93,42 @@ class DebuggerView extends View
 
   _connect: (wsUrl)->
     @debugger.connect wsUrl,
-      onPause = (location)=>
-        atom.workspaceView.addClass('debugger--paused')
-        @openPath location
-        .done =>
-          # coffeelint: disable=max_line_length
-          @status.text("Paused at line #{location.lineNumber} of #{@scriptPath(location)}")
-          # coffeelint: enable=max_line_length
-          @callFrames.setModel(@debugger.getCallFrames()[0])
-          @updateMarkers()
-      , onResume = =>
-        atom.workspaceView.removeClass('debugger--paused')
-        @updateMarkers()
-      , openScript = (args...)=>@openPath(args...) # TEMPORARY TODO
-
+      @handlePause.bind(this),
+      @handleResume.bind(this),
+      @handleScript.bind(this)
 
   toggleSession: (wsUrl) ->
-    if @debugger.isActive
-      debug('end session')
-      @endSession()
-      return
+    if @debugger.isActive then @endSession()
+    else @startSession()
 
+  startSession: (wsUrl)->
     debug('start session', wsUrl)
-    atom.workspaceView.prependToBottom(this)
-    # atom.workspace.open('atom://debugger/callframes',
-    #   split: 'right'
-    #   searchAllPanes: true
-    #   activatePane: false
-    # )
 
     if wsUrl?
+      # if we have a ws:// url (or a port with whic to make one), then use it.
       if /^[0-9]+$/.test(wsUrl+'')
         wsUrl = "ws://localhost:#{wsUrl}/ws"
       @_connect(wsUrl)
+
     else
+      # otherwise, start a node (--debug-brk) child process current file mode.
       @editor = atom.workspace.getActiveEditor()
       file = @editor.getPath()
       
       @debugServer = new DebugServer()
-      @debugServer.on "close", =>
-        @endSession()
+      @debugServer.on "close", => @endSession()
       @debugServer.start nodeInspectorConfig
 
-      @childprocess = spawn(
-        "node",
-        params = ["--debug-brk=" + nodeInspectorConfig.debugPort, file]
-      )
+      @childprocess = spawn("node",
+        params = ["--debug-brk=" + nodeInspectorConfig.debugPort, file])
       @childprocess.stderr.once 'data', =>
         @_connect("ws://localhost:#{nodeInspectorConfig.webPort}/ws")
       
-      @childprocess.stdout.on 'data', (data)=>
-        @console.append("""
-        <div>
-        #{data}
-        </div>
-        """)
-        debug('child process stdout',data)
-      @childprocess.stderr.on 'data', (data)=>
-        @console.append("""
-        <div>
-        #{data}
-        </div>
-        """)
-        debug('child process stderr',data)
-
+      @childprocess.stdout.on 'data', (m)=>@console.append("<div>#{m}</div>")
+      @childprocess.stderr.on 'data', (m)=>@console.append("<div>#{m}</div>")
 
   endSession: ->
+    debug('end session')
     @debugger.close()
     @updateMarkers()
     @childprocess?.kill()
@@ -169,10 +136,60 @@ class DebuggerView extends View
     @debugServer?.removeAllListeners()
     @debugServer?.close()
     @debugServer = null
+    
+    @status.text('Debugger stopped')
 
-    @detach()
 
+  handlePause: (location) ->
+    atom.workspaceView.addClass('debugger--paused')
+    @openPath location
+    .done =>
+      @status.text("Paused at line #{location.lineNumber} "+
+                   "of #{@scriptPath(location)}")
+      @callFrames.setModel(@debugger.getCallFrames()[0])
+      @updateMarkers()
+      
+  handleResume: ->
+    atom.workspaceView.removeClass('debugger--paused')
+    @updateMarkers()
+    
+  handleScript: (scriptObject) ->
+    if /^http/.test scriptObject.sourceURL
+      @openPath({scriptUrl: scriptObject.sourceURL, lineNumber: 0},
+        {changeFocus: false})
 
+  toggleBreakpointAtCurrentLine: ->
+    scriptUrl = @editorUrl()
+    lineNumber = @editor.getCursorBufferPosition().toArray()[0]
+    
+    debug('toggling breakpoint for', scriptUrl)
+    @debugger.toggleBreakpoint({lineNumber, scriptUrl})
+    .done =>
+      debug('toggled breakpoint')
+      @updateMarkers()
+    , (error) -> debug(error)
+
+  openPath: ({scriptUrl, lineNumber}, options={})->
+    debug('open script', scriptUrl, lineNumber)
+    return q(@editor) if @isActiveScript(scriptUrl)
+    
+    path = @scriptPath(scriptUrl)
+    if /^https?:/.test path then path = url.format
+      protocol: 'atom'
+      slashes: true
+      hostname: 'debugger'
+      pathname: 'open'
+      query: {url: path}
+    else if /^file/.test path
+      path = url.parse(path).pathname
+      
+    options.initialLine = lineNumber
+    atom.workspaceView.open(path, options)
+    .then (@editor)->#just save editor.
+
+  #
+  # Markers for breakpoints and paused execution
+  #
   markers: []
   createMarker: (lineNumber)->
     line = @editor.lineTextForBufferRow(lineNumber)
@@ -213,39 +230,7 @@ class DebuggerView extends View
   destroyAllMarkers: ->
     marker.destroy() for marker in @markers
   
-  toggleBreakpointAtCurrentLine: ->
-    scriptUrl = @editorUrl()
-    
-    debug('toggling breakpoint for', scriptUrl)
-    @debugger.toggleBreakpoint(
-      lineNumber: @editor.getCursorBufferPosition().toArray()[0]
-      scriptUrl: scriptUrl
-    ).done =>
-      debug('toggled breakpoint')
-      @updateMarkers()
-      # TODO: breakpoint list
-    , (error)->
-      debug(error)
 
-  openPath: ({scriptUrl, lineNumber}, options={})->
-    debug('open script', scriptUrl, lineNumber)
-    return q(@editor) if @isActiveScript(scriptUrl)
-    
-    path = @scriptPath(scriptUrl)
-    if /^https?:/.test path then path = url.format
-      protocol: 'atom'
-      slashes: true
-      hostname: 'debugger'
-      pathname: 'open'
-      query:
-        url: path
-    else if /^file/.test path
-      path = url.parse(path).pathname
-      
-    options.initialLine = lineNumber
-    atom.workspaceView.open(path, options)
-    .then (@editor)->#just save editor.
-  
   serialize: ->
 
   destroy: ->
@@ -255,14 +240,11 @@ class DebuggerView extends View
     @endSession()
     @destroyAllMarkers()
 
-    # TODO: ???
-    atom.workspace.getPaneItems().forEach (item)->
-      if item instanceof RemoteTextBuffer
-        atom.workspace.getActivePane().destroyItem(item)
-
   
-  # Private util functions
-
+  #
+  # Some helper functions
+  #
+  
   editorUrl: ->
     edPath = @editor?.getPath() ? null
     if(edPath != null)

@@ -1,5 +1,7 @@
 {$, EditorView, Point, View} = require 'atom'
 
+Q = require 'q'
+
 module.exports =
 class ChooseDebuggerView extends View
   
@@ -10,16 +12,12 @@ class ChooseDebuggerView extends View
 
   detaching: false
 
-  initialize: (@debuggerView, state) ->
-    atom.workspaceView.command 'debugger:connect', =>
-      @toggle()
-      false
+  initialize: (state) ->
 
     @miniEditor.setText(state?.text ? '')
 
     atom.workspaceView.on 'core:confirm', => @confirm()
-    atom.workspaceView.on 'core:cancel', => @detach()
-
+    atom.workspaceView.on 'core:cancel', => @cancel()
     @miniEditor.getModel().on 'will-insert-text', ({cancel, text}) ->
       # cancel() unless text.match(/[0-9]/)
       # TODO: validate ws url.
@@ -29,8 +27,9 @@ class ChooseDebuggerView extends View
 
   toggle: ->
     if @hasParent()
-      @detach()
+      @cancel()
     else
+      @deferred = Q.defer()
       @attach()
 
   detach: ->
@@ -44,13 +43,15 @@ class ChooseDebuggerView extends View
     @restoreFocus() if miniEditorFocused
     @detaching = false
 
+  cancel: ->
+    @deferred.resolve({cancel: true})
+    @detach()
+    
   confirm: ->
     return unless @hasParent()
-    debugPort = @miniEditor.getText()
+    portOrUrl = @miniEditor.getText()
+    @deferred.resolve({portOrUrl})
     @detach()
-    # This is where we start the debugger.
-    @debuggerView.toggleSession(debugPort)
-
 
   storeFocusedElement: ->
     @previouslyFocusedElement = $(':focus')

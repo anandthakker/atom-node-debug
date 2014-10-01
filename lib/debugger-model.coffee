@@ -41,11 +41,11 @@ class DebuggerModel
   resume: => @api.debugger.resume()
     
   isActive: false
-  connect: (@wsUrl, @onPause, @onResume, @openScript) ->
+  connect: (@wsUrl, @onPause, @onResume, @onScript) ->
     if @isActive then throw new Error('Already connected.')
     @onPause ?= ->
     @onResume ?= ->
-    @openScript ?= ->
+    @onScript ?= ->
 
     debug('starting debugger', wsUrl)
 
@@ -94,13 +94,8 @@ class DebuggerModel
   scriptCache: {}
   addScript: (scriptObject)->
     @scriptCache[''+scriptObject.scriptId] = scriptObject
+    @onScript(scriptObject)
     debug('added script', scriptObject)
-    
-    # TEMPORARY!  TODO
-    if /^http/.test scriptObject.sourceURL
-      @openScript({scriptId: scriptObject.scriptId, lineNumber: 0},
-        {changeFocus: false})
-
     
   clearScripts: () -> @scriptCache = {}
   getScript: (id) -> @scriptCache[''+id]
