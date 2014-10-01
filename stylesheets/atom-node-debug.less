@@ -16,6 +16,10 @@
   
 }
 
+.debugger-ui {
+  max-height: 50%;
+}
+
 .debugger--show-breakpoints {
   // decoration for a breakpoint.
   .debugger-breakpoint
@@ -59,7 +63,47 @@
   }
   
   .debugger-console {
-    height: 15em;
+    width: 49%;
+    display: inline-block;
+    vertical-align: top;
+    max-height: 10em;
+    overflow: scroll;
+  }
+  .debugger-call-frame {
+    h2 {
+      font-size: 1em;
+      text-align: right;
+    }
+    .line:before {
+      content: ':'
+    }
+    
+    ul {
+      list-style-type: none;
+      margin: 0;
+      padding: 0;
+    }
+    
+    dl {
+      dd, dt {
+        display: inline-block;
+        vertical-align: top;
+      }
+      dt {
+        width: 25%;
+        text-align: right;
+        padding-right: 2em;
+      }
+      dd {
+        width: 75%;
+      }
+    }
+    
+    width: 49%;
+    display: inline-block;
+    vertical-align: top;
+    
+    overflow: scroll;
   }
 }
   

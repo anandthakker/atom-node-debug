@@ -5,7 +5,7 @@ Q = require('q')
 _ = require('underscore-plus')
 debug = require('debug')('atom-debugger:model')
 
-RemoteObject = require('./model/remote-object')
+CallFrame = require('./model/call-frame')
 
 ###
 Data & control for a debugging scenario and a particular session
@@ -203,10 +203,9 @@ class DebuggerModel
   ###* @return {scriptId, scriptUrl, lineNumber} of current pause. ###
   setCurrentPause: (@currentPause)->
     @currentPause.callFrames
+    .map (cf) => new CallFrame(cf, @api)
     .forEach (cf)=>
       cf.location.scriptUrl = @_scriptUrl(cf.location)
-      cf.scopeChain.forEach (scope)=>
-        scope.object = new RemoteObject(scope.object, @api)
       
     @currentPause.callFrames[0].location
 

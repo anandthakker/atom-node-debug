@@ -12,13 +12,14 @@ nodeInspectorConfig = require("node-inspector/lib/config")
 
 DebuggerApi = require('./debugger-api')
 CommandButtonView = require('./command-button-view')
+CallFrameView = require('./call-frame-view')
 
 
 module.exports =
 class DebuggerView extends View
 
   @content: ->
-    @div class: "tool-panel panel-bottom padded debugger debugger--ui", =>
+    @div class: "tool-panel panel-bottom padded debugger debugger-ui", =>
       @div class: "panel-heading", =>
         @div class: 'btn-toolbar pull-left', =>
           @div class: 'btn-group', =>
@@ -32,7 +33,9 @@ class DebuggerView extends View
             @subview 'stepInto', new CommandButtonView('step-into')
             @subview 'stepOut', new CommandButtonView('step-out')
         @div class: 'debugger-status', 'Debugging', outlet: 'status'
-      @div class: "panel-body padded debugger-console", outlet: 'console'
+      @div class: "panel-body padded", =>
+        @div class: 'debugger-console', outlet: 'console'
+        @subview 'callFrames', new CallFrameView()
 
   ###
   To make up for the lack of a good central command manager
@@ -100,6 +103,7 @@ class DebuggerView extends View
           # coffeelint: disable=max_line_length
           @status.text("Paused at line #{location.lineNumber} of #{@scriptPath(location)}")
           # coffeelint: enable=max_line_length
+          @callFrames.setModel(@debugger.getCallFrames()[0])
           @updateMarkers()
       , onResume = =>
         atom.workspaceView.removeClass('debugger--paused')
@@ -115,6 +119,11 @@ class DebuggerView extends View
 
     debug('start session', wsUrl)
     atom.workspaceView.prependToBottom(this)
+    # atom.workspace.open('atom://debugger/callframes',
+    #   split: 'right'
+    #   searchAllPanes: true
+    #   activatePane: false
+    # )
 
     if wsUrl?
       if /^[0-9]+$/.test(wsUrl+'')

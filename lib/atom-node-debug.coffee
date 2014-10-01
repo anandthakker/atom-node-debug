@@ -35,17 +35,18 @@ module.exports =
       @debuggerView,
       state.chooseDebuggerViewState)
 
-    # allows us to seamlessly open remote sources in an editor
-    # for debugging browser scripts.
-    atom.workspace.registerOpener (uri,opts)->
+    atom.workspace.registerOpener (uri,opts)=>
       {protocol, host, pathname, query} = url.parse(uri, true)
       debug('opener', uri, protocol, host, pathname, query)
-      return unless (
-        protocol is 'atom:' and
-        host is 'debugger' and
-        pathname is '/open')
+      return unless (protocol is 'atom:' and host is 'debugger')
 
-      RemoteTextBuffer.open(uri, query.url, opts)
+      # seamlessly open remote sources in an editor for debugging browser scripts.
+      if pathname is '/open'
+        RemoteTextBuffer.open(uri, query.url, opts)
+      
+      # if pathname is '/callframes'
+      #   @debuggerView.callFrames
+
         
   deactivate: ->
     @chooseDebuggerView.destroy()
