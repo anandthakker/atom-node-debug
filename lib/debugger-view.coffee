@@ -82,8 +82,8 @@ class DebuggerView extends ScrollView
     btn.commandsReady() for btn in [@continue,@stepOver,@stepOut,@stepInto]
 
   # Needed for opening in a pane.
-  getTitle: ->
-    "Debug"
+  getTitle: -> "Debug"
+  getUri: -> 'atom://debugger/'
 
   ###
   View control logic.
