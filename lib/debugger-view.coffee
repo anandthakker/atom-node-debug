@@ -1,6 +1,7 @@
 spawn = require('child_process').spawn
 path = require('path')
 url = require('url')
+fs = require('fs')
 
 {ScrollView, Range, Point} = require 'atom'
 
@@ -160,7 +161,6 @@ class DebuggerView extends ScrollView
           
         # There's a potential for a race condition here, but it seems unlikely
         # and it's not dire anyway.
-        @lastEditorPane.activate()
         @openPath active.model.location
         
         
@@ -193,6 +193,8 @@ class DebuggerView extends ScrollView
   openPath: ({scriptUrl, lineNumber}, options={})->
     debug('open script', scriptUrl, lineNumber)
     return q(@editor) if @isActiveScript(scriptUrl)
+    
+    @lastEditorPane.activate()
     
     path = @scriptPath(scriptUrl)
     if /^https?:/.test path then path = url.format

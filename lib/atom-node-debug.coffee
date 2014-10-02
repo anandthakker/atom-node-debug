@@ -15,7 +15,7 @@ module.exports =
       # 'atom-debugger:backend'
       # 'atom-debugger:api'
       # 'atom-debugger:model'
-      # 'atom-debugger:view'
+      'atom-debugger:view'
       # 'atom-debugger:package'
     ].join(','))
     debug.log = console.debug.bind(console)
