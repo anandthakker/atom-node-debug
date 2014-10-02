@@ -23,8 +23,10 @@
 }
 
 .debugger-ui {
+  height: 100%;
   
   & > .panel-heading {
+    height: 3em;
     .clearfix();
     
     //weird off-center button spacing.
@@ -43,6 +45,7 @@
   
   & > .panel-body {
     padding: 0;
+    height: calc(100% - 3em);
   }
 
 }
@@ -73,9 +76,10 @@
   }
   
   .debugger-call-frames {
+    height: 100%;
+    overflow: scroll;
     width: 50%;
     float: right;
-    overflow: scroll;
 
     .debugger-call-frame {
       .line:before {content: ':'}

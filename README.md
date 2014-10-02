@@ -1,17 +1,10 @@
 # Atom debugger package
 
 Debug javascript code from right within the editor: set breakpoints, step through code,
-inspect variable/expression values<sup><a id="ref1" href="#note1">1</a></sup>.
-
-**UPDATE:** You can now (just barely) attach to Chrome!  See [instructions](#Chrome) below.
+inspect variables values.
 
 We all love (and couldn't live without) the Chrome inspector, but sometimes you just don't want
 to open up your whole source tree in another browser.
-
-<small>
-Notes:
-<a id="note1" href="#ref1">1</a></sup> Coming soon!
-</small>
 
 ![](https://raw.githubusercontent.com/anandthakker/atom-node-debug/master/screenshot.gif)
 
@@ -20,12 +13,14 @@ Notes:
 - Attach to a `Chrome --remote-debugging-port` session to debug javascript running
   in the browser.
 - Step through (over, into, out) node code.
+- Navigate the call stack.
+- Inspect variable values.
 - Rudimentary console output.
 
 # Roadmap
 
-- [x] *LANDED*: Ability to attach to Chrome debugger in addition to Node one.
-  - [ ] Next: intelligently open *local* source files from current project, even
+- [x] Ability to attach to Chrome debugger in addition to Node one.
+  - [ ] Follow-up: intelligently open *local* source files from current project, even
         when they're being served via http.
 - [x] Open up a new tab when execution leaves current source.
 - [x] Persist breakpoints across debugger sessions.
@@ -33,7 +28,7 @@ Notes:
 - [x] Variables
 - [ ] Structured console messages
 - [x] TESTS! (Although the underlying API has tests, the ui wiring doesn't.)
-- [ ] Jump up and down the stack
+- [x] Jump up and down the stack
 - [ ] Eval
 - [ ] Save and continue
 - [ ] Source maps (a.k.a. coffeescript support)

@@ -36,8 +36,7 @@ class DebuggerView extends ScrollView
           @div class: 'tool-panel bordered debugger-console', =>
             @div class: 'panel-heading', 'Console'
             @div class: 'panel-body', outlet: 'console'
-          @div class: 'debugger-call-frames', =>
-            @subview 'callFrames', new CallFrameView()
+          @div class: 'debugger-call-frames', outlet: 'callFrames'
 
   ###
   To make up for the lack of a good central command manager
@@ -89,11 +88,12 @@ class DebuggerView extends ScrollView
   View control logic.
   ###
   activePaneItemChanged: ->
-    #TODO: what about split panes?
     paneItem = atom.workspace.getActivePaneItem()
     if paneItem?.getBuffer?()?
+      @lastEditorPane = atom.workspace.getActivePane()
+      previousEditor = @editor
       @editor = paneItem
-      @updateMarkers()
+      @updateMarkers()  unless previousEditor is @editor
 
 
   _connect: (wsUrl)->
@@ -151,7 +151,23 @@ class DebuggerView extends ScrollView
     .done =>
       @status.text("Paused at line #{location.lineNumber} "+
                    "of #{@scriptPath(location)}")
-      @callFrames.setModel(@debugger.getCallFrames()[0])
+
+      @callFrames.empty()
+      frameViews = []
+      onShow = (active) =>
+        frameViews.forEach (frameView) ->
+          frameView.hide()  unless frameView is active
+          
+        # There's a potential for a race condition here, but it seems unlikely
+        # and it's not dire anyway.
+        @lastEditorPane.activate()
+        @openPath active.model.location
+        
+        
+      for cf in @debugger.getCallFrames()
+        frameViews.push (cfView = new CallFrameView(cf, onShow))
+        @callFrames.append cfView
+
       @updateMarkers()
       
   handleResume: ->
