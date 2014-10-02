@@ -1,3 +1,12 @@
+2014-10-02 - 0.4.0 (9f45748)
+9f45748 (HEAD, master) Open new scripts in correct pane.
+ca2c7dd Explore variable properties recursively.
+7b66c4a New feature: navigate the call stack.
+467841d Update styles to suit panel-based view.
+986056d Refactor to use Panes, and heavy cleaning.
+5368355 (tag: v0.3.0, origin/master) 0.3.0
+
+
 2014-10-01 - 0.3.0 (519e964)
 519e964 (HEAD, origin/dev, master, dev) fix readme and changelog
 698ba4a (tag: v0.2.3) 0.2.3
