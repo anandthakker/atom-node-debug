@@ -1,6 +1,8 @@
-{$$, Point, ScrollView} = require 'atom'
+{$, $$, Point, ScrollView} = require 'atom'
 
 url = require 'url'
+
+RemoteObjectView = require './remote-object-view'
 
 module.exports =
 class CallFrameView extends ScrollView
@@ -36,23 +38,18 @@ class CallFrameView extends ScrollView
     .then =>
       @loaded = true
       @updateView()
+
     
+  # TODO: just move this into @content()
   updateView: ->
     @scopes.empty()
     for scope in @model.scopeChain
-      @scopes.append $$ ->
-        @li =>
-          @dl =>
-            for prop in scope.object.properties
-              @dt class: 'source js variable', prop.name
-              @dd class: 'source js', prop.value?.description
-      theThis = scope.thisObject
-      if theThis?
-        @thisObject.append $$ ->
-          @h3 'this:'
-          @dl outlet: 'thisObject', =>
-            for prop in theThis.properties
-              @dt class: 'variable', prop.name
-              @dd prop.value?.description
+      li = $('<li></li>')
+      @scopes.append(li)
+      li.append(new RemoteObjectView(scope.object, 'scope ('+scope.type+')'))
+      
+    theThis = scope['this']
+    if theThis?
+      @thisObject.append new RemoteObjectView(theThis, 'this')
       
     
