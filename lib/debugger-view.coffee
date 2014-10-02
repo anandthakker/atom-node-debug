@@ -5,7 +5,7 @@ fs = require('fs')
 
 {ScrollView, Range, Point} = require 'atom'
 
-q = require 'q'
+Q = require 'q'
 DebugServer = require("node-inspector/lib/debug-server").DebugServer
 nodeInspectorConfig = require("node-inspector/lib/config")
 debug = require('debug')('atom-debugger:view')
@@ -146,14 +146,19 @@ class DebuggerView extends ScrollView
     @status.text('Debugger stopped')
 
 
+  pauseLocation: null
   handlePause: (location) ->
     atom.workspaceView.addClass('debugger--paused')
     @openPath location
     .done =>
+      @pauseLocation = location
       @status.text("Paused at line #{location.lineNumber} "+
                    "of #{@scriptPath(location)}")
 
       @callFrames.empty()
+      
+      return unless @pauseLocation.scriptUrl
+      
       frameViews = []
       onShow = (active) =>
         frameViews.forEach (frameView) ->
@@ -171,6 +176,7 @@ class DebuggerView extends ScrollView
       @updateMarkers()
       
   handleResume: ->
+    @pauseLocation = null
     atom.workspaceView.removeClass('debugger--paused')
     @updateMarkers()
     
@@ -178,6 +184,9 @@ class DebuggerView extends ScrollView
     if /^http/.test scriptObject.sourceURL
       @openPath({scriptUrl: scriptObject.sourceURL, lineNumber: 0},
         {changeFocus: false})
+    else if @pauseLocation? and not @pauseLocation?.scriptUrl?
+      @pauseLocation.scriptUrl = scriptObject.sourceURL
+      @openPath(location)
 
   toggleBreakpointAtCurrentLine: ->
     scriptUrl = @editorUrl()
@@ -192,22 +201,28 @@ class DebuggerView extends ScrollView
 
   openPath: ({scriptUrl, lineNumber}, options={})->
     debug('open script', scriptUrl, lineNumber)
-    return q(@editor) if @isActiveScript(scriptUrl)
+    return Q(@editor) if @isActiveScript(scriptUrl)
     
     @lastEditorPane.activate()
     
-    path = @scriptPath(scriptUrl)
-    if /^https?:/.test path then path = url.format
+    scriptUrl = @scriptPath(scriptUrl)
+    scriptPath = if /^https?:/.test path then url.format
       protocol: 'atom'
       slashes: true
       hostname: 'debugger'
       pathname: 'open'
-      query: {url: path}
-    else if /^file/.test path
-      path = url.parse(path).pathname
-      
+      query: {url: scriptUrl}
+    else if /^file/.test scriptUrl
+      file = path.resolve url.parse(scriptUrl).pathname
+      if fs.existsSync(file) then file
+      else
+        console.log "#{file} doesn't exist."
+        undefined
+
+    return Q() unless scriptPath?
+    debug('resolved to', scriptPath)
     options.initialLine = lineNumber
-    atom.workspaceView.open(path, options)
+    atom.workspaceView.open(scriptPath, options)
     .then (@editor)->#just save editor.
 
   #
@@ -280,13 +295,14 @@ class DebuggerView extends ScrollView
       @editor?.getBuffer()?.getRemoteUri() ? ''
 
   scriptPath: (urlOrLoc)->
-    origUrl = urlOrLoc.scriptUrl ? urlOrLoc
+    origUrl = urlOrLoc?.scriptUrl ? urlOrLoc
+    return '' unless origUrl? and typeof origUrl is 'string'
     earl = url.parse(origUrl, true)
     if earl.protocol is 'file://' then earl.pathname
     else origUrl
 
   isActiveScript: (urlOrLoc)->
-    return false unless (editorUrl = @editorUrl())?
+    return false unless urlOrLoc? and (editorUrl = @editorUrl())?
     editorUrl is (urlOrLoc.scriptUrl ? urlOrLoc)
     
   

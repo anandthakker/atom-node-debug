@@ -100,9 +100,6 @@ class DebuggerModel
   clearScripts: () -> @scriptCache = {}
   getScript: (id) -> @scriptCache[''+id]
 
-  # TODO: clean this up. Currently, it relies on scriptId defaulting
-  # to scriptUrl when the debugger isn't running, which is fragile and
-  # stupid.
   getScriptIdForUrl: (url)->
     for id,script of @scriptCache
       if script.sourceURL is url then return id
@@ -113,7 +110,7 @@ class DebuggerModel
       scriptIdOrLocation.scriptUrl ? @_scriptUrl(scriptIdOrLocation.scriptId)
     else
       script = @getScript(scriptIdOrLocation)
-      @getScript(scriptIdOrLocation)?.sourceURL ? scriptIdOrLocation
+      @getScript(scriptIdOrLocation)?.sourceURL
 
 
 
@@ -137,7 +134,7 @@ class DebuggerModel
 
     if not @isActive
       @breakpoints.push theBreakpoint=
-        locations: [{lineNumber, scriptUrl, scriptId: scriptUrl}]
+        locations: [{lineNumber, scriptUrl, scriptUrl: scriptUrl}]
       def.resolve(theBreakpoint)
     else
       @api.debugger.setBreakpointByUrl(
@@ -175,7 +172,6 @@ class DebuggerModel
 
   getBreakpointsAtLocation: ({scriptUrl, lineNumber}) ->
     debug('getBreakpointsAtLocation', scriptUrl, lineNumber)
-    scriptId = @getScriptIdForUrl(scriptUrl) ? scriptUrl
     @breakpoints.filter (bp)->
       (scriptUrl is bp.locations[0].scriptUrl and
       lineNumber is bp.locations[0].lineNumber)
