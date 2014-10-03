@@ -201,7 +201,10 @@ class DebuggerView extends ScrollView
 
   openPath: ({scriptUrl, lineNumber}, options={})->
     debug('open script', scriptUrl, lineNumber)
-    return Q(@editor) if @isActiveScript(scriptUrl)
+    
+    if @isActiveScript(scriptUrl)
+      @editor.scrollToBufferPosition new Point(lineNumber, 0)
+      return Q(@editor)
     
     @lastEditorPane.activate()
     
