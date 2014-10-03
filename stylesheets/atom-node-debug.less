@@ -75,6 +75,26 @@
     overflow: scroll;
   }
   
+  .debugger-remote-object {
+    .clearfix();
+    
+    .name:after { content: ":" }
+    .description { margin-left: .5em; }
+
+    & > .name,
+    & > .description { cursor: pointer; }
+    & > .name:before { content: '\0025B8'; }
+    &.open > .name:before { content: '\0025BE'; }
+    & > .description:after { content: ' {...}' }
+    &.open > .description:after { content: ' {' }
+    &.open:after { content: '}' }
+    
+    .properties {
+      margin-left: 1em;
+    }
+  }
+
+  
   .debugger-call-frames {
     height: 100%;
     overflow: scroll;
@@ -90,18 +110,6 @@
         padding: 0;
       }
       
-      dl {
-        dd, dt {
-          display: inline-block;
-          vertical-align: top;
-        }
-        dt {
-          width: 25%;
-          text-align: right;
-          padding-right: 2em;
-        }
-        dd { width: 75%; }
-      }
     }
   }
   
