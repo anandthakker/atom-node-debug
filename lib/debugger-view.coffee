@@ -160,9 +160,9 @@ class DebuggerView extends ScrollView
       return unless @pauseLocation.scriptUrl
       
       frameViews = []
-      onShow = (active) =>
+      onExpand = (active) =>
         frameViews.forEach (frameView) ->
-          frameView.hide()  unless frameView is active
+          frameView.collapse()  unless frameView is active
           
         # There's a potential for a race condition here, but it seems unlikely
         # and it's not dire anyway.
@@ -170,8 +170,10 @@ class DebuggerView extends ScrollView
         
         
       for cf in @debugger.getCallFrames()
-        frameViews.push (cfView = new CallFrameView(cf, onShow))
+        frameViews.push (cfView = new CallFrameView(cf, onExpand))
         @callFrames.append cfView
+      
+      frameViews[0].expand()
 
       @updateMarkers()
       
