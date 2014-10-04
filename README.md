@@ -9,13 +9,13 @@ to open up your whole source tree in another browser.
 ![](https://raw.githubusercontent.com/anandthakker/atom-node-debug/master/screenshot.gif)
 
 # Features
-- Run debugger on current file, or attach to an existing `node --debug` session.
-- Attach to a `Chrome --remote-debugging-port` session to debug javascript running
-  in the browser.
 - Step through (over, into, out) node code.
 - Navigate the call stack.
 - Inspect variable values.
 - Rudimentary console output.
+- Run debugger on current file, or attach to an existing `node --debug` session.
+- Attach to a `Chrome --remote-debugging-port` session to debug javascript running
+  in the browser.
 
 # Roadmap
 
