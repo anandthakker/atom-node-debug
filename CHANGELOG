@@ -1,3 +1,14 @@
+2014-10-04 - 0.4.1 (878b848)
+878b848 (HEAD, master) Update readme and screenshot.
+c794b9c clean: Suppress debug logging.
+8bd9a74 tweak: Auto-open top scope in variables view.
+9c9bb9f feat: Syntax highlight variable watches.
+d9e6dda bugfix: scroll to new position when execution pauses.
+680e3f9 bugfix: weirdness when paused within unavailable script.
+f7925ae bugfix: toggling closed debug session panel weirdness
+9c8bc0d (tag: v0.4.0, origin/master) 0.4.0
+
+
 2014-10-02 - 0.4.0 (9f45748)
 9f45748 (HEAD, master) Open new scripts in correct pane.
 ca2c7dd Explore variable properties recursively.
