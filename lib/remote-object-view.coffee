@@ -38,7 +38,6 @@ class RemoteObjectView extends View
       @updateView()
     
   updateView: ->
-    console.log @model
     @contents.empty()
     for prop in @model.properties
       @contents.append(div = $('<div class="property"></div>'))

@@ -235,6 +235,7 @@ class DebuggerView extends ScrollView
   #
   markers: []
   createMarker: (lineNumber)->
+    lineNumber = parseInt(lineNumber, 10)
     line = @editor.lineTextForBufferRow(lineNumber)
     range = new Range(new Point(lineNumber,0),
                       new Point(lineNumber, line.length-1))
