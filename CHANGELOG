@@ -1,3 +1,8 @@
+2014-10-12 - 0.4.2 (a3cd145)
+a3cd145 (HEAD, master) Fix some stupid edge case bugs.
+b85fb9d (tag: v0.4.1, origin/master) 0.4.1
+
+
 2014-10-04 - 0.4.1 (878b848)
 878b848 (HEAD, master) Update readme and screenshot.
 c794b9c clean: Suppress debug logging.
