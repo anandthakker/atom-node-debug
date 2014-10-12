@@ -31,6 +31,7 @@ class ChooseDebuggerView extends View
     else
       @deferred = Q.defer()
       @attach()
+    @deferred.promise
 
   detach: ->
     return unless @hasParent()

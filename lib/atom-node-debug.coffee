@@ -43,7 +43,7 @@ module.exports =
     #
     
     atom.workspaceView.command 'debugger:connect', =>
-      @chooseView ?= new ChooseDebuggerView(state.chooseViewState)
+      @chooseView ?= new ChooseDebuggerView(state?.chooseViewState ? {})
       @chooseView.toggle()
       .done ({portOrUrl, cancel}) => unless cancel
         @stopDebugging()

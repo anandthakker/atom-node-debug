@@ -11,7 +11,8 @@ class CallFrameView extends ScrollView
     @div class: 'tool-panel bordered debugger-call-frame', =>
       @div class: 'panel-heading', click: 'toggle', =>
         @a outlet: 'link', =>
-          @span class: 'url', url.parse(model.location.scriptUrl).pathname
+          @span class: 'url',
+            url.parse(model.location.scriptUrl ? 'file://unknown').pathname
           @span class: 'line', model.location.lineNumber
       @div class: 'panel-body', outlet: 'contents', =>
         @ul outlet: 'scopes', =>
