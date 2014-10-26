@@ -191,12 +191,6 @@ class DebuggerView extends ScrollView
       @updateMarkers()
     , (error) -> debug(error)
 
-  openPath: ({scriptUrl, lineNumber}, options={})->
-    debug('open script', scriptUrl, lineNumber)
-    
-
-
-    @editorControls.open(scriptUrl, lineNumber, options)
 
   #
   # Markers for breakpoints and paused execution
