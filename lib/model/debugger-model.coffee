@@ -82,11 +82,11 @@ class DebuggerModel
 
   close: ->
     @isActive = false
-    @api.close()
     @clearCurrentPause()
     @clearScripts()
     @onResume = null
     @onPause = null
+    @api.close()
 
   ###
   Scripts

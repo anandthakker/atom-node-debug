@@ -5,6 +5,8 @@ fs = require('fs')
 
 {ScrollView, Range, Point} = require 'atom'
 
+Q = require('q')
+
 debug = require('debug')('atom-debugger:view')
 DebugServer = require("node-inspector/lib/debug-server").DebugServer
 nodeInspectorConfig = require("node-inspector/lib/config")
@@ -49,7 +51,6 @@ class DebuggerView extends ScrollView
   triggerCommand: (name)->
     @localCommandMap[name]()
 
-
   ###
   Wire up view commands to DebuggerApi.
   ###
@@ -79,14 +80,25 @@ class DebuggerView extends ScrollView
 
     btn.commandsReady() for btn in [@continue,@stepOver,@stepOut,@stepInto]
 
+  serialize: ->
+
+  destroy: ->
+    atom.workspaceView.removeClass('debugger')
+    atom.workspaceView.removeClass('debugger--show-breakpoints')
+    @localCommandMap = null
+    @endSession()
+    @destroyAllMarkers()
+    @editorControls.destroy()
+
+
   # Needed for opening in a pane.
   getTitle: -> "Debugger"
   getUri: -> 'atom://debugger/'
 
+
   ###
   View control logic.
   ###
-
 
   _connect: (wsUrl)->
     @debugger.connect wsUrl,
@@ -113,32 +125,46 @@ class DebuggerView extends ScrollView
       
       debug('creating debug server')
       @debugServer = new DebugServer()
-      @debugServer.on "close", => @endSession()
+      @debugServerClosed = Q.defer()
+      @debugServer.on "close", =>
+        debug('debug server close')
+        @debugServer.removeAllListeners()
+        @debugServer = null
+        @debugServerClosed.resolve()
+        @endSession()
       @debugServer.start nodeInspectorConfig
 
+      debug('spawning child process')
       @childprocess = spawn("node",
         params = ["--debug-brk=" + nodeInspectorConfig.debugPort, file])
+
+      @childprocess.on 'exit', =>
+        debug('child process exit')
+        @childprocess.removeAllListeners()
+        @childprocess = null
+        @childprocessClosed.resolve()
+        @endSession()
+
       @childprocess.stderr.once 'data', =>
         @_connect("ws://localhost:#{nodeInspectorConfig.webPort}/ws")
-      
+        @childprocessClosed = Q.defer()
+
       @childprocess.stdout.on 'data', (m)=>@console.append("<div>#{m}</div>")
       @childprocess.stderr.on 'data', (m)=>@console.append("<div>#{m}</div>")
 
   endSession: ->
     debug('end session')
-    @debugger.close()
     @updateMarkers()
     @childprocess?.kill()
-    @childprocess = null
-    @debugServer?.removeAllListeners()
     @debugServer?.close()
-    @debugServer = null
     
     @status.text('Debugger stopped')
 
+    Q.all([@debugger.close(), @childprocessClosed, @debugServerClosed])
 
   pauseLocation: null
   handlePause: (location) ->
+    debug('paused', location)
     atom.workspaceView.addClass('debugger--paused')
     @editorControls.open(location)
     .done =>
@@ -238,17 +264,5 @@ class DebuggerView extends ScrollView
 
   destroyAllMarkers: ->
     marker.destroy() for marker in @markers
-  
-
-  serialize: ->
-
-  destroy: ->
-    atom.workspaceView.removeClass('debugger')
-    atom.workspaceView.removeClass('debugger--show-breakpoints')
-    @localCommandMap = null
-    @endSession()
-    @destroyAllMarkers()
-    @editorControls.destroy()
-  
 
   

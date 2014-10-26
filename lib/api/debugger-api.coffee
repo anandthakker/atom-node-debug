@@ -1,7 +1,7 @@
 
 {EventEmitter} = require('events')
 
-q = require('q')
+Q = require('q')
 WebSocket = require('ws')
 debug = require('debug')('atom-debugger:api')
 
@@ -100,9 +100,11 @@ class DebuggerApi extends DebuggerEventHandler
     ws.once 'open', =>
       debug('ws:open')
       @emit 'connect'
+      @connectionClosed = Q.defer()
     ws.once 'close', =>
       debug('ws:close')
       @emit 'close'
+      @connectionClosed.resolve()
     ws.on 'message', (message, flags)=>
       debug('message', {message, flags})
       @backend.dispatch(message)
@@ -113,5 +115,6 @@ class DebuggerApi extends DebuggerEventHandler
     @backend.getWebSocket()?.close()
     @backend.getWebSocket()?.removeAllListeners()
     @backend.setWebSocket(null)
+    @connectionClosed ? Q()
     
   

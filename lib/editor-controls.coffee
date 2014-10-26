@@ -80,8 +80,11 @@ class EditorControls
     # if it's not a file:// or http(s)://, treat it as a path.
     else scriptUrl
         
+    debug('scriptUrl', scriptUrl)
+    debug('current editor', @editorUrl())
     if scriptUrl is @editorUrl()
       @editor.scrollToBufferPosition new Point(lineNumber, 0)
+      debug('just scroll')
       return Q(@editor)
     
     @lastEditorPane.activate()
