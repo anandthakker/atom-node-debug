@@ -89,7 +89,7 @@ module.exports =
         @stopDebugging()
         @startDebugging(portOrUrl)
     
-    atom.workspaceView.command 'debugger:open-debug-view', '.workspace', =>
+    atom.workspaceView.command 'debugger:open-debug-view', '.workspace', ->
       
     atom.workspaceView.command 'debugger:toggle-debug-session', '.editor', =>
       @toggleDebugging()
@@ -115,14 +115,15 @@ module.exports =
   startDebugging: (portOrUrl)->
     @openDebugView()
     .done (debuggerView)->
+      debug('start debugging', portOrUrl)
       debuggerView.endSession()
       debuggerView.toggleSession(portOrUrl)
 
   deactivate: ->
     @stopDebugging()
-    @chooseView?.destroy()
-    @debuggerView?.destroy()
-    @editorControls?.destroy()
+    @chooseView?.destroy?()
+    @debuggerView?.destroy?()
+    @editorControls?.destroy?()
     @debuggerModel.close()
     @debuggerView = @chooseView = @editorControls = null
     

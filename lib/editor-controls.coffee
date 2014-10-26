@@ -31,6 +31,7 @@ class EditorControls
 
   # @param format Format resulting path as URL, even for local paths.
   editorPath: (format) ->
+    return null unless @editor?.getPath?
     if(@editor?.getPath()?)
       return @editor.getPath() unless format
       url.format
@@ -85,7 +86,7 @@ class EditorControls
       @editor.scrollToBufferPosition new Point(lineNumber, 0)
       return Q(@editor)
     
-    @lastEditorPane.activate()
+    @lastEditorPane?.activate?()
     options.initialLine = lineNumber
     atom.workspaceView.open(scriptPath, options)
     .then (@editor)->#just save editor.

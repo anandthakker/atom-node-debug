@@ -20,25 +20,24 @@ module.exports =
 class DebuggerView extends ScrollView
 
   @content: ->
-    @div class: "pane-item", =>
-      @div class: "debugger debugger-ui", =>
-        @div class: "panel-heading", =>
-          @div class: 'btn-group debugger-detach', =>
-            @button 'Detach',
-              click: 'endSession'
-              class: 'btn'
-          @div class: 'debugger-status', outlet: 'status', 'Debugging'
-          @div class: 'btn-toolbar debugger-control-flow', =>
-            @div class: 'btn-group', =>
-              @subview 'continue', new CommandButtonView('continue')
-              @subview 'stepOver', new CommandButtonView('step-over')
-              @subview 'stepInto', new CommandButtonView('step-into')
-              @subview 'stepOut', new CommandButtonView('step-out')
-        @div class: "panel-body", =>
-          @div class: 'tool-panel bordered debugger-console', =>
-            @div class: 'panel-heading', 'Console'
-            @div class: 'panel-body', outlet: 'console'
-          @div class: 'debugger-call-frames', outlet: 'callFrames'
+    @div class: "pane-item debugger debugger-ui", =>
+      @div class: "panel-heading", =>
+        @div class: 'btn-group debugger-detach', =>
+          @button 'Detach',
+            click: 'endSession'
+            class: 'btn'
+        @div class: 'debugger-status', outlet: 'status', 'Debugging'
+        @div class: 'btn-toolbar debugger-control-flow', =>
+          @div class: 'btn-group', =>
+            @subview 'continue', new CommandButtonView('continue')
+            @subview 'stepOver', new CommandButtonView('step-over')
+            @subview 'stepInto', new CommandButtonView('step-into')
+            @subview 'stepOut', new CommandButtonView('step-out')
+      @div class: "panel-body", =>
+        @div class: 'tool-panel bordered debugger-console', =>
+          @div class: 'panel-heading', 'Console'
+          @div class: 'panel-body', outlet: 'console'
+        @div class: 'debugger-call-frames', outlet: 'callFrames'
 
   ###
   To make up for the lack of a good central command manager
@@ -107,7 +106,7 @@ class DebuggerView extends ScrollView
 
   toggleSession: (wsUrl) ->
     if @debugger.isActive then @endSession()
-    else @startSession()
+    else @startSession(wsUrl)
 
   startSession: (wsUrl)->
     debug('start session', wsUrl)
@@ -238,6 +237,7 @@ class DebuggerView extends ScrollView
     @destroyAllMarkers()
     
     editorUrl = @editorControls.editorUrl()
+    return unless editorUrl?
     
     # collect up the decorations we'll want by line.
     map = {} #not really a map, but meh.

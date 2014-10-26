@@ -6,7 +6,7 @@ module.exports =
 class ChooseDebuggerView extends View
   
   @content: ->
-    @div class: 'overlay from-top', =>
+    @div class: 'overlay from-top debugger-connect', =>
       @subview 'miniEditor', new EditorView(mini: true)
       @div class: 'message', outlet: 'message'
 
