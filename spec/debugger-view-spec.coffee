@@ -9,7 +9,7 @@ debug = require('debug')('atom-debugger:view')
 {WorkspaceView} = require 'atom'
 Debugger = require '../lib/atom-node-debug'
 
-fdescribe "DebuggerView", ->
+describe "DebuggerView", ->
 
   pkg = null
   debuggerView = null
@@ -61,18 +61,25 @@ fdescribe "DebuggerView", ->
     scriptPath1 = require.resolve('./fixtures/multi_file_1.js')
     scriptPath2 = require.resolve('./fixtures/multi_file_2.js')
     setup(scriptPath1)
-      
+    pauseLocation = null
     runs ->
       debuggerView = pkg.mainModule.debuggerView
       debuggerView.trigger('debugger:step-over')
     
     waitsFor ->
       debuggerView.pauseLocation?.lineNumber is 3
-    
+
     runs -> debuggerView.trigger('debugger:step-into')
-    
     waitsFor ->
       atom.workspace.getActivePaneItem()?.getPath?() isnt scriptPath1
-      
     runs ->
       expect(atom.workspace.getActivePaneItem().getPath()).toBe(scriptPath2)
+      pauseLocation = debuggerView.pauseLocation
+      console.log pauseLocation
+      debuggerView.trigger('debugger:step-out')
+    waitsFor ->
+      (debuggerView.pauseLocation isnt pauseLocation) and
+      (debuggerView.pauseLocation?)
+    runs ->
+      console.log debuggerView.pauseLocation
+      expect(atom.workspace.getActivePaneItem().getPath()).toBe(scriptPath1)

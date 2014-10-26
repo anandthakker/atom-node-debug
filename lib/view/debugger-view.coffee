@@ -88,7 +88,6 @@ class DebuggerView extends ScrollView
     @localCommandMap = null
     @endSession()
     @destroyAllMarkers()
-    @editorControls.destroy()
 
 
   # Needed for opening in a pane.
@@ -122,21 +121,23 @@ class DebuggerView extends ScrollView
     else
       # otherwise, start a node (--debug-brk) child process current file mode.
       file = @editorControls.editorPath()
+      debug('debug current file', file)
       
       debug('creating debug server')
       @debugServer = new DebugServer()
       @debugServerClosed = Q.defer()
-      @debugServer.on "close", =>
+      @debugServer.start nodeInspectorConfig
+      @debugServer._httpServer.on "close", =>
         debug('debug server close')
-        @debugServer.removeAllListeners()
+        @debugServer._httpServer.removeAllListeners()
         @debugServer = null
         @debugServerClosed.resolve()
         @endSession()
-      @debugServer.start nodeInspectorConfig
 
-      debug('spawning child process')
       @childprocess = spawn("node",
         params = ["--debug-brk=" + nodeInspectorConfig.debugPort, file])
+      debug('spawned child process', 'node'+params.join '')
+
 
       @childprocess.on 'exit', =>
         debug('child process exit')
@@ -156,7 +157,7 @@ class DebuggerView extends ScrollView
     debug('end session')
     @updateMarkers()
     @childprocess?.kill()
-    @debugServer?.close()
+    @debugServer?._httpServer?.close()
     
     @status.text('Debugger stopped')
 
@@ -225,6 +226,8 @@ class DebuggerView extends ScrollView
   createMarker: (lineNumber)->
     lineNumber = parseInt(lineNumber, 10)
     line = @editorControls.editor.lineTextForBufferRow(lineNumber)
+    unless line?.length?
+      debugger
     range = new Range(new Point(lineNumber,0),
                       new Point(lineNumber, line.length-1))
 
@@ -232,7 +235,6 @@ class DebuggerView extends ScrollView
     marker
 
   updateMarkers: ->
-    debug('update markers')
     @destroyAllMarkers()
     
     editorUrl = @editorControls.editorUrl()
@@ -246,7 +248,6 @@ class DebuggerView extends ScrollView
       if index is 0 then map[lineNumber].push 'debugger-current-pointer--top'
 
     breakpoints = @debugger.getBreakpoints()
-    debug('breakpoint markers', breakpoints)
     for bp in @debugger.getBreakpoints()
       {locations: [firstLocation]} = bp
       continue unless firstLocation?.scriptUrl? and

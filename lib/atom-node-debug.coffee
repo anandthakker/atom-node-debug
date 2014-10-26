@@ -37,6 +37,7 @@ module.exports =
   chooseView: null
   debuggerView: null
   debuggerModel: null
+  editorControls: null
   
   
   activate: (state) ->
@@ -121,7 +122,9 @@ module.exports =
     @stopDebugging()
     @chooseView?.destroy()
     @debuggerView?.destroy()
+    @editorControls?.destroy()
     @debuggerModel.close()
+    @debuggerView = @chooseView = @editorControls = null
     
     # TODO: ???
     atom.workspace.getPaneItems().forEach (item)->
