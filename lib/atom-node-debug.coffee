@@ -1,8 +1,43 @@
+debug =
+url =
+RemoteTextBuffer =
+EditorControls =
+DebuggerApi =
+DebuggerModel =
+ChooseDebuggerView =
+DebuggerView = null
+
+loadPackageDependencies = ->
+  if not debug?
+    debug = require('debug')
+    # debug.enable [
+    #   'atom-debugger:backend'
+    #   'atom-debugger:api'
+    #   'atom-debugger:model'
+    #   'atom-debugger:view'
+    #   'atom-debugger:package'
+    # ].join ','
+    debug.log = console.debug.bind(console)
+    debug = debug('atom-debugger:package')
+
+  debug('loading package deps')
+
+  url ?= require('url')
+  
+  RemoteTextBuffer    ?= require './remote-text-buffer'
+  EditorControls      ?= require './editor-controls'
+  DebuggerApi         ?= require './api/debugger-api'
+  DebuggerModel       ?= require './model/debugger-model'
+  ChooseDebuggerView  ?= require './view/choose-debugger-view'
+  DebuggerView        ?= require './view/debugger-view'
+
+
 
 module.exports =
   chooseView: null
   debuggerView: null
   debuggerModel: null
+  
   
   activate: (state) ->
 
@@ -10,24 +45,7 @@ module.exports =
     # Require modules
     #
     
-    debug = require('debug')
-    debug.enable([
-      # 'atom-debugger:backend'
-      # 'atom-debugger:api'
-      # 'atom-debugger:model'
-      # 'atom-debugger:view'
-      # 'atom-debugger:package'
-    ].join(','))
-    debug.log = console.debug.bind(console)
-    debug = debug('atom-debugger:package')
-
-    url = require('url')
-    
-    DebuggerApi = require './debugger-api'
-    RemoteTextBuffer = require './remote-text-buffer'
-    ChooseDebuggerView = require './choose-debugger-view'
-    DebuggerView = require './debugger-view'
-    DebuggerModel = require './debugger-model'
+    loadPackageDependencies()
 
     debug('activating debugger package')
     
@@ -38,6 +56,27 @@ module.exports =
     @debuggerModel = new DebuggerModel(state?.debuggerModelState ? {},
       new DebuggerApi())
     
+    #
+    # Helpers
+    #
+    @editorControls = new EditorControls()
+    
+    #
+    # Set up routes for atom://debugger/* uris
+    #
+
+    atom.workspace.addOpener (uri,opts)=>
+      {protocol, host, pathname, query} = url.parse(uri, true)
+      return unless (protocol is 'atom:' and host is 'debugger')
+
+      switch pathname
+        # open debugger view
+        when '','/'
+          @debuggerView ?= new DebuggerView(@debuggerModel, @editorControls)
+        # open remote sources in a TextEditor for debugging browser scripts.
+        when '/open' then RemoteTextBuffer.open(uri, query.url, opts)
+
+
     #
     # Set up commands
     #
@@ -54,22 +93,9 @@ module.exports =
     atom.workspaceView.command 'debugger:toggle-debug-session', '.editor', =>
       @toggleDebugging()
 
-    #
-    # Set up routes for atom://debugger/* uris
-    #
-
-    atom.workspace.registerOpener (uri,opts)=>
-      {protocol, host, pathname, query} = url.parse(uri, true)
-      return unless (protocol is 'atom:' and host is 'debugger')
-
-      switch pathname
-        # open remote sources in a TextEditor for debugging browser scripts.
-        when '/open' then RemoteTextBuffer.open(uri, query.url, opts)
-        when '','/'
-          @debuggerView ? (@debuggerView = new DebuggerView(@debuggerModel))
-
   
   toggleDebugging: ->
+    debug('toggleDebugging')
     if(@debuggerView?)
       @openDebugView()
       .done => @debuggerView.toggleSession()
@@ -83,8 +109,7 @@ module.exports =
     pane = atom.workspace.paneForUri('atom://debugger/')
     pane ?= activePane.splitDown({copyActiveItem: false})
     activePane.activate() #reactivate the editor we started from.
-    atom.workspace.openUriInPane('atom://debugger/',
-      pane, {changeFocus: false})
+    atom.workspace.openUriInPane('atom://debugger/', pane, {changeFocus: false})
 
   startDebugging: (portOrUrl)->
     @openDebugView()

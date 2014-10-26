@@ -3,6 +3,9 @@ spawn = require('child_process').spawn
 _ = require 'underscore-plus'
 Q = require 'q'
 
+debug = require('debug')
+debug.enable('node-inspector:*, atom-debugger:*')
+
 DebugServer = require("node-inspector/lib/debug-server").DebugServer
 nodeInspectorConfig = require("node-inspector/lib/config")
 

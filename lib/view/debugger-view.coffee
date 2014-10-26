@@ -5,12 +5,11 @@ fs = require('fs')
 
 {ScrollView, Range, Point} = require 'atom'
 
-Q = require 'q'
+debug = require('debug')('atom-debugger:view')
 DebugServer = require("node-inspector/lib/debug-server").DebugServer
 nodeInspectorConfig = require("node-inspector/lib/config")
-debug = require('debug')('atom-debugger:view')
 
-DebuggerApi = require('./debugger-api')
+@EditorControls = require('../editor-controls')
 CommandButtonView = require('./command-button-view')
 CallFrameView = require('./call-frame-view')
 
@@ -54,12 +53,11 @@ class DebuggerView extends ScrollView
   ###
   Wire up view commands to DebuggerApi.
   ###
-  initialize: (@debugger) ->
+  initialize: (@debugger, @editorControls) ->
     super
     
-    @activePaneItemChanged()
-    atom.workspaceView.on 'pane-container:active-pane-item-changed', =>
-      @activePaneItemChanged()
+    @editorControls.onDidEditorChange(@updateMarkers.bind(this))
+    @updateMarkers()
 
     atom.workspaceView.addClass('debugger')
     atom.workspaceView.addClass('debugger--show-breakpoints')
@@ -82,19 +80,12 @@ class DebuggerView extends ScrollView
     btn.commandsReady() for btn in [@continue,@stepOver,@stepOut,@stepInto]
 
   # Needed for opening in a pane.
-  getTitle: -> "Debug"
+  getTitle: -> "Debugger"
   getUri: -> 'atom://debugger/'
 
   ###
   View control logic.
   ###
-  activePaneItemChanged: ->
-    paneItem = atom.workspace.getActivePaneItem()
-    if paneItem?.getBuffer?()?
-      @lastEditorPane = atom.workspace.getActivePane()
-      previousEditor = @editor
-      @editor = paneItem
-      @updateMarkers()  unless previousEditor is @editor
 
 
   _connect: (wsUrl)->
@@ -118,9 +109,9 @@ class DebuggerView extends ScrollView
 
     else
       # otherwise, start a node (--debug-brk) child process current file mode.
-      @editor = atom.workspace.getActiveEditor()
-      file = @editor.getPath()
+      file = @editorControls.editorPath()
       
+      debug('creating debug server')
       @debugServer = new DebugServer()
       @debugServer.on "close", => @endSession()
       @debugServer.start nodeInspectorConfig
@@ -149,11 +140,11 @@ class DebuggerView extends ScrollView
   pauseLocation: null
   handlePause: (location) ->
     atom.workspaceView.addClass('debugger--paused')
-    @openPath location
+    @editorControls.open(location)
     .done =>
       @pauseLocation = location
       @status.text("Paused at line #{location.lineNumber} "+
-                   "of #{@scriptPath(location)}")
+                   "of #{@editorControls.editorPath()}")
 
       @callFrames.empty()
       
@@ -166,7 +157,7 @@ class DebuggerView extends ScrollView
           
         # There's a potential for a race condition here, but it seems unlikely
         # and it's not dire anyway.
-        @openPath active.model.location
+        @editorControls.open(active.model.location)
         
         
       for cf in @debugger.getCallFrames()
@@ -184,15 +175,14 @@ class DebuggerView extends ScrollView
     
   handleScript: (scriptObject) ->
     if /^http/.test scriptObject.sourceURL
-      @openPath({scriptUrl: scriptObject.sourceURL, lineNumber: 0},
-        {changeFocus: false})
+      @editorControls.open(scriptObject.sourceURL, 0, {changeFocus: false})
     else if @pauseLocation? and not @pauseLocation?.scriptUrl?
       @pauseLocation.scriptUrl = scriptObject.sourceURL
-      @openPath(location)
+      @editorControls.open(location)
 
   toggleBreakpointAtCurrentLine: ->
-    scriptUrl = @editorUrl()
-    lineNumber = @editor.getCursorBufferPosition().toArray()[0]
+    scriptUrl = editorUrl(@editorControls.editor())
+    lineNumber = @editorControls.editor.getCursorBufferPosition().toArray()[0]
     
     debug('toggling breakpoint for', scriptUrl)
     @debugger.toggleBreakpoint({lineNumber, scriptUrl})
@@ -204,31 +194,9 @@ class DebuggerView extends ScrollView
   openPath: ({scriptUrl, lineNumber}, options={})->
     debug('open script', scriptUrl, lineNumber)
     
-    if @isActiveScript(scriptUrl)
-      @editor.scrollToBufferPosition new Point(lineNumber, 0)
-      return Q(@editor)
-    
-    @lastEditorPane.activate()
-    
-    scriptUrl = @scriptPath(scriptUrl)
-    scriptPath = if /^https?:/.test path then url.format
-      protocol: 'atom'
-      slashes: true
-      hostname: 'debugger'
-      pathname: 'open'
-      query: {url: scriptUrl}
-    else if /^file/.test scriptUrl
-      file = path.resolve url.parse(scriptUrl).pathname
-      if fs.existsSync(file) then file
-      else
-        console.log "#{file} doesn't exist."
-        undefined
 
-    return Q() unless scriptPath?
-    debug('resolved to', scriptPath)
-    options.initialLine = lineNumber
-    atom.workspaceView.open(scriptPath, options)
-    .then (@editor)->#just save editor.
+
+    @editorControls.open(scriptUrl, lineNumber, options)
 
   #
   # Markers for breakpoints and paused execution
@@ -236,21 +204,23 @@ class DebuggerView extends ScrollView
   markers: []
   createMarker: (lineNumber)->
     lineNumber = parseInt(lineNumber, 10)
-    line = @editor.lineTextForBufferRow(lineNumber)
+    line = @editorControls.editor.lineTextForBufferRow(lineNumber)
     range = new Range(new Point(lineNumber,0),
                       new Point(lineNumber, line.length-1))
 
-    @markers.push(marker = @editor.markBufferRange(range))
+    @markers.push(marker = @editorControls.editor.markBufferRange(range))
     marker
 
   updateMarkers: ->
     debug('update markers')
     @destroyAllMarkers()
     
+    editorUrl = @editorControls.editorUrl()
+    
     # collect up the decorations we'll want by line.
     map = {} #not really a map, but meh.
     for {lineNumber, scriptUrl}, index in @debugger.getCurrentPauseLocations()
-      continue unless @isActiveScript(scriptUrl)
+      continue unless scriptUrl is editorUrl
       map[lineNumber] ?= ['debugger']
       map[lineNumber].push 'debugger-current-pointer'
       if index is 0 then map[lineNumber].push 'debugger-current-pointer--top'
@@ -259,7 +229,8 @@ class DebuggerView extends ScrollView
     debug('breakpoint markers', breakpoints)
     for bp in @debugger.getBreakpoints()
       {locations: [firstLocation]} = bp
-      continue unless @isActiveScript(firstLocation)
+      continue unless firstLocation?.scriptUrl? and
+        firstLocation.scriptUrl is editorUrl
       map[firstLocation.lineNumber] ?= ['debugger']
       map[firstLocation.lineNumber].push 'debugger-breakpoint'
 
@@ -267,7 +238,7 @@ class DebuggerView extends ScrollView
     for lineNumber,classes of map
       marker = @createMarker(lineNumber)
       for cls in classes
-        @editor.decorateMarker marker,
+        @editorControls.editor.decorateMarker marker,
           type: ['gutter', 'line'],
           class: cls
 
@@ -283,32 +254,7 @@ class DebuggerView extends ScrollView
     @localCommandMap = null
     @endSession()
     @destroyAllMarkers()
-
+    @editorControls.destroy()
   
-  #
-  # Some helper functions
-  #
-  
-  editorUrl: ->
-    edPath = @editor?.getPath() ? null
-    if(edPath != null)
-      url.format(
-        protocol: 'file'
-        slashes: 'true'
-        pathname: edPath
-      )
-    else
-      @editor?.getBuffer()?.getRemoteUri() ? ''
 
-  scriptPath: (urlOrLoc)->
-    origUrl = urlOrLoc?.scriptUrl ? urlOrLoc
-    return '' unless origUrl? and typeof origUrl is 'string'
-    earl = url.parse(origUrl, true)
-    if earl.protocol is 'file://' then earl.pathname
-    else origUrl
-
-  isActiveScript: (urlOrLoc)->
-    return false unless urlOrLoc? and (editorUrl = @editorUrl())?
-    editorUrl is (urlOrLoc.scriptUrl ? urlOrLoc)
-    
   

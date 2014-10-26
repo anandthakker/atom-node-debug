@@ -5,7 +5,7 @@ Q = require('q')
 _ = require('underscore-plus')
 debug = require('debug')('atom-debugger:model')
 
-CallFrame = require('./model/call-frame')
+CallFrame = require('./call-frame')
 
 ###
 Data & control for a debugging scenario and a particular session

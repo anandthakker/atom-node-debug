@@ -1,21 +1,12 @@
 url = require 'url'
 Q = require 'q'
 _ = require 'underscore-plus'
+
 {nodeDebug, nodeInspector} = require './spec-helper'
 
-debug = require('debug')
-debug.enable([
-  # 'atom-debugger:backend'
-  # 'atom-debugger:api'
-  'atom-debugger:model'
-  # 'atom-debugger:view'
-  # 'atom-debugger:package'
-].join(','))
-debug.log = console.debug.bind(console)
 
-
-DebuggerApi = require '../lib/debugger-api.coffee'
-DebuggerModel = require '../lib/debugger-model.coffee'
+DebuggerApi = require '../lib/api/debugger-api'
+DebuggerModel = require '../lib/model/debugger-model'
 RemoteObject = require '../lib/model/remote-object'
 
 describe 'DebuggerModel', ->
