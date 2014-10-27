@@ -1,3 +1,14 @@
+2014-10-27 - 0.4.3 (76d9e2f)
+76d9e2f (HEAD, master) fix: graceully handle pause in unknown/unparsed script
+7decd59 test: add tests for connecting to external debugger
+d3a6281 fix: properly close connections on destroy()
+f6d4fe6 test: add test for multi-file debugging.  (failing because of port reuse)
+ada82d6 remove dead code
+11560fc test: add initial DebuggerView spec
+2bce69d (yet another) major refactor
+9ff1751 (tag: v0.4.2, origin/master) 0.4.2
+
+
 2014-10-12 - 0.4.2 (a3cd145)
 a3cd145 (HEAD, master) Fix some stupid edge case bugs.
 b85fb9d (tag: v0.4.1, origin/master) 0.4.1
