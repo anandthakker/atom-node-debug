@@ -17,7 +17,7 @@ loadPackageDependencies = ->
     #   'atom-debugger:view'
     #   'atom-debugger:package'
     # ].join ','
-    debug.log = console.debug.bind(console)
+    # debug.log = console.debug.bind(console)
     debug = debug('atom-debugger:package')
 
   debug('loading package deps')

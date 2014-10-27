@@ -27,20 +27,19 @@ class EditorControls
   
   onDidEditorChange: (@onEditorChange) ->
   
-  editor: -> @editor
-
   # @param format Format resulting path as URL, even for local paths.
   editorPath: (format) ->
-    return null unless @editor?.getPath?
-    if(@editor?.getPath()?)
-      return @editor.getPath() unless format
+    return null unless @editor?
+    filePath = @editor.getPath()
+    if(filePath?)
+      return filePath unless format
       url.format
         protocol: 'file'
         slashes: 'true'
-        pathname: @editor.getPath()
+        pathname: filePath
     else
       # try getting RemoteTextBuffer URL.
-      @editor?.getBuffer()?.getRemoteUri() ? ''
+      @editor?.getBuffer()?.getRemoteUri?() ? ''
     
   editorUrl: -> @editorPath(true)
   
@@ -58,7 +57,7 @@ class EditorControls
   # open(url, linenumber, [options])
   # open({scriptUrl, lineNumber}, [options])
   open: (scriptUrl, lineNumber, options={})->
-    debug('open location', scriptUrl, lineNumber)
+    debug('open location', scriptUrl, lineNumber, options)
     
     if(typeof scriptUrl is 'object')
       options = lineNumber ? {}

@@ -166,10 +166,17 @@ class DebuggerView extends ScrollView
   handlePause: (location) ->
     debug('paused', location)
     atom.workspaceView.addClass('debugger--paused')
-    @editorControls.open(location)
+    
+    promise = if location.scriptUrl? then Q(location) # resolve immediately.
+    else
+      @pauseDeferred = Q.defer() #resolve if/when script is parsed.
+      @pauseDeferred.promise
+    
+    @pauseLocation = location
+    promise.then =>
+      @editorControls.open(@pauseLocation)
     .done =>
-      @pauseLocation = location
-      @status.text("Paused at line #{location.lineNumber} "+
+      @status.text("Paused at line #{@pauseLocation.lineNumber} "+
                    "of #{@editorControls.editorPath()}")
 
       @callFrames.empty()
@@ -190,7 +197,7 @@ class DebuggerView extends ScrollView
         frameViews.push (cfView = new CallFrameView(cf, onExpand))
         @callFrames.append cfView
       
-      frameViews[0].expand()
+      frameViews[0]?.expand()
 
       @updateMarkers()
       
@@ -200,14 +207,19 @@ class DebuggerView extends ScrollView
     @updateMarkers()
     
   handleScript: (scriptObject) ->
+    debug('handle script', scriptObject, @pauseLocation)
+    
     if /^http/.test scriptObject.sourceURL
       @editorControls.open(scriptObject.sourceURL, 0, {changeFocus: false})
-    else if @pauseLocation? and not @pauseLocation?.scriptUrl?
+      
+    else if(@pauseLocation?.scriptId is scriptObject.scriptId and
+    not @pauseLocation?.scriptUrl?)
       @pauseLocation.scriptUrl = scriptObject.sourceURL
-      @editorControls.open(location)
+      @pauseDeferred?.resolve()
+      
 
   toggleBreakpointAtCurrentLine: ->
-    scriptUrl = editorUrl(@editorControls.editor())
+    scriptUrl = @editorControls.editorUrl()
     lineNumber = @editorControls.editor.getCursorBufferPosition().toArray()[0]
     
     debug('toggling breakpoint for', scriptUrl)
@@ -225,8 +237,7 @@ class DebuggerView extends ScrollView
   createMarker: (lineNumber)->
     lineNumber = parseInt(lineNumber, 10)
     line = @editorControls.editor.lineTextForBufferRow(lineNumber)
-    unless line?.length?
-      debugger
+    return unless line?.length?
     range = new Range(new Point(lineNumber,0),
                       new Point(lineNumber, line.length-1))
 

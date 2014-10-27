@@ -2,11 +2,15 @@ path = require('path')
 url = require('url')
 
 Q = require('q')
+
+{nodeDebug, nodeInspector} = require './spec-helper'
+
 debug = require('debug')('atom-debugger:view')
 
 {WorkspaceView} = require 'atom'
 Debugger = require '../lib/atom-node-debug'
-{nodeDebug, nodeInspector} = require './spec-helper'
+DebuggerView = require '../lib/view/debugger-view'
+EditorControls = require '../lib/editor-controls'
 
 
 describe "DebuggerView", ->
@@ -60,7 +64,7 @@ describe "DebuggerView", ->
 
       waitsFor ->
         (debuggerView.pauseLocation isnt pauseLocation) and
-        (debuggerView.pauseLocation?)
+        (debuggerView.pauseLocation?.scriptUrl?)
 
       runs ->
         expect(atom.workspace.getActivePaneItem().getPath()).toBe(scriptPath1)
@@ -79,7 +83,7 @@ describe "DebuggerView", ->
 
       waitsFor ->
         debuggerView = pkg.mainModule.debuggerView
-        debuggerView?.pauseLocation?
+        debuggerView?.pauseLocation?.scriptUrl?
       
       runs ->
         console.log 'setup complete for ', scriptPath
@@ -114,7 +118,7 @@ describe "DebuggerView", ->
   
       waitsFor ->
         debuggerView = pkg.mainModule.debuggerView
-        debuggerView?.pauseLocation?
+        debuggerView?.pauseLocation?.scriptUrl?
       
     afterEach ->
       debuggerModel?.close()
@@ -125,3 +129,39 @@ describe "DebuggerView", ->
     commonTestSuite(setup)
 
   
+  debug('blah')
+  it 'handles pause in unparsed/unknown script', ->
+    scriptPath = require.resolve('./fixtures/simple_program.js')
+    bugger =
+      connect: (wsurl,@onpause,@onresume,@onscript)->
+      pauses: []
+      getCurrentPauseLocations: -> @pauses
+      getBreakpoints: -> []
+      getCallFrames: -> []
+      close: -> Q(true)
+    
+    debuggerView = new DebuggerView(bugger, new EditorControls())
+    
+    debuggerView.startSession('ws://dummy:1729/')
+    
+    bugger.pauses.push
+      scriptId: "60"
+      lineNumber: 3
+      columnNumber: 0
+    bugger.onpause bugger.pauses[0]
+
+    waitsFor -> debuggerView.pauseLocation?
+    
+    runs ->
+      waits(300)
+      expect(debuggerView.pauseLocation.scriptUrl).not.toBeDefined()
+      expect(atom.workspace.getActivePaneItem()).toBeFalsy()
+
+      bugger.onscript
+        scriptId: '60'
+        sourceURL: scriptUrl(scriptPath)
+      
+    waitsFor -> debuggerView.pauseLocation?.scriptUrl?
+    waitsFor -> atom.workspace.getActivePaneItem()?.getPath?()?
+    runs ->
+      expect(atom.workspace.getActivePaneItem().getPath()).toBe(scriptPath)
