@@ -4,8 +4,8 @@ _ = require 'underscore-plus'
 Q = require 'q'
 
 debug = require('debug')
-debug.enable('atom-debugger:*')
-debug.log = console.debug.bind(console)
+# debug.enable('atom-debugger:view')
+debug.log = console.log.bind(console)
 
 
 DebugServer = require("node-inspector/lib/debug-server").DebugServer

@@ -1,8 +1,7 @@
 {$, $$, Point, View} = require 'atom'
-
 url = require 'url'
-
 Q = require('q')
+debug = require('debug')('atom-debugger:remote-object')
 
 module.exports =
 class RemoteObjectView extends View
@@ -27,8 +26,10 @@ class RemoteObjectView extends View
     return if @contents.hasParent()
     @addClass('open')
     @load()
-    .done =>
+    .then =>
       @append @contents
+    .fail (error) ->
+      debug "Error loading remote object", error
     
   load: ->
     return Q() if @loaded or not @model.load?

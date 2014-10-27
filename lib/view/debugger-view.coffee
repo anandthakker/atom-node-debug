@@ -45,8 +45,11 @@ class DebuggerView extends ScrollView
   ###
   localCommandMap: {}
   registerCommand: (name, filter, callback) ->
-    atom.workspaceView.command name, callback
-    @localCommandMap[name] = callback
+    cb = (rgs...)->
+      debug('command', name, rgs...)
+      callback(rgs...)
+    atom.workspaceView.command name, cb
+    @localCommandMap[name] = cb
   triggerCommand: (name)->
     @localCommandMap[name]()
 

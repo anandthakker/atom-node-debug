@@ -53,11 +53,12 @@ class DebuggerModel
     deferred = Q.defer()
     @api.once 'connect', =>
       @isActive = true
-      Q.all [
-        Q.ninvoke @api.debugger, 'enable', null
-        Q.ninvoke @api.page, 'getResourceTree', null
-      ]
-      .then => @registerCachedBreakpoints()
+
+      promises = []
+      promises.push Q.ninvoke @api.page, 'enable', null
+      promises.push Q.ninvoke @api.debugger, 'enable', null
+      promises.push Q.ninvoke @api.page, 'getResourceTree', null
+      Q.all(promises).then => @registerCachedBreakpoints()
       .then deferred.resolve
       
     @api.once 'close', => @close()
