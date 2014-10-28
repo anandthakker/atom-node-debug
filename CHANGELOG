@@ -1,3 +1,10 @@
+2014-10-28 - 0.4.4 (6bb590d)
+6bb590d (HEAD, origin/master, master) tests: trying to make them pass more consistently
+02dfeba add build status to readme.
+5227437 add .travis.yml
+4e8a136 (tag: v0.4.3) 0.4.3
+
+
 2014-10-27 - 0.4.3 (76d9e2f)
 76d9e2f (HEAD, master) fix: graceully handle pause in unknown/unparsed script
 7decd59 test: add tests for connecting to external debugger
