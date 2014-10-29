@@ -1,7 +1,5 @@
 # Atom debugger package
 
-[![Build Status](https://travis-ci.org/anandthakker/atom-node-debug.svg)](https://travis-ci.org/anandthakker/atom-node-debug)
-
 Debug javascript code from right within the editor: set breakpoints, step through code,
 inspect variables values.
 
