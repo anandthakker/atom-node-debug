@@ -89,7 +89,7 @@ the editor.  Set breakpoints and reload the page to debug!
 
 # Contributing
 
-Issues and PR's welcome.
+Issues and PRs welcome.
 
 # Thanks
 
