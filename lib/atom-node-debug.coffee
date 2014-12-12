@@ -82,17 +82,17 @@ module.exports =
     # Set up commands
     #
     
-    atom.workspaceView.command 'debugger:connect', =>
-      @chooseView ?= new ChooseDebuggerView(state?.chooseViewState ? {})
-      @chooseView.toggle()
-      .done ({portOrUrl, cancel}) => unless cancel
-        @stopDebugging()
-        @startDebugging(portOrUrl)
+    atom.commands.add 'atom-workspace',
+      'debugger:connect': =>
+        @chooseView ?= new ChooseDebuggerView(state?.chooseViewState ? {})
+        @chooseView.toggle()
+        .done ({portOrUrl, cancel}) => unless cancel
+          @stopDebugging()
+          @startDebugging(portOrUrl)
+      'debugger:open-debug-view': ->
     
-    atom.workspaceView.command 'debugger:open-debug-view', '.workspace', ->
-      
-    atom.workspaceView.command 'debugger:toggle-debug-session', '.editor', =>
-      @toggleDebugging()
+    atom.commands.add 'atom-text-editor',
+      'debugger:toggle-debug-session': => @toggleDebugging()
 
   
   toggleDebugging: ->

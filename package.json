@@ -12,10 +12,10 @@
     "web inspector",
     "node-inspector"
   ],
-  "activationEvents": [
-    "debugger:connect",
-    "debugger:toggle-debug-session"
-  ],
+  "activationCommands":{
+    "atom-workspace": ["debugger:connect"],
+    "atom-text-editor": ["debugger:toggle-debug-session"]
+  },
   "repository": "https://github.com/anandthakker/atom-node-debug",
   "license": "MIT",
   "engines": {
@@ -29,7 +29,9 @@
     "request": "^2.44.0",
     "text-buffer": "^3.2.7",
     "underscore-plus": "^1.5.1",
-    "ws": "^0.4.32"
+    "ws": "^0.4.32",
+    "atom-space-pen-views": "^0",
+    "space-pen": "^4"
   },
   "devDependencies": {}
 }

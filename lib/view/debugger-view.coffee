@@ -3,15 +3,14 @@ path = require('path')
 url = require('url')
 fs = require('fs')
 
-{ScrollView, Range, Point} = require 'atom'
-
-Q = require('q')
+{Range, Point} = require 'atom'
+{ScrollView} = require 'atom-space-pen-views'
 
 debug = require('debug')('atom-debugger:view')
-DebugServer = require("node-inspector/lib/debug-server").DebugServer
-nodeInspectorConfig = require("node-inspector/lib/config")
+Q = require('q')
 
 @EditorControls = require('../editor-controls')
+DebugRunner = require('../debug-runner')
 CommandButtonView = require('./command-button-view')
 CallFrameView = require('./call-frame-view')
 
@@ -42,13 +41,17 @@ class DebuggerView extends ScrollView
   ###
   To make up for the lack of a good central command manager
   (which seems to be coming soon, based on master branch of atom...)
+  TODO: the commandregistry is here, so remove this.
   ###
   localCommandMap: {}
   registerCommand: (name, filter, callback) ->
     cb = (rgs...)->
       debug('command', name, rgs...)
       callback(rgs...)
-    atom.workspaceView.command name, cb
+    
+    cmd = {}
+    cmd[name] = cb
+    atom.commands.add 'atom-workspace', cmd
     @localCommandMap[name] = cb
   triggerCommand: (name)->
     @localCommandMap[name]()
@@ -62,8 +65,9 @@ class DebuggerView extends ScrollView
     @editorControls.onDidEditorChange(@updateMarkers.bind(this))
     @updateMarkers()
 
-    atom.workspaceView.addClass('debugger')
-    atom.workspaceView.addClass('debugger--show-breakpoints')
+    workspaceView = atom.views.getView(atom.workspace)
+    workspaceView.classList.add('debugger')
+    workspaceView.classList.add('debugger--show-breakpoints')
     
     @registerCommand 'debugger:step-into',
     '.debugger--paused', => @debugger.stepInto()
@@ -85,8 +89,9 @@ class DebuggerView extends ScrollView
   serialize: ->
 
   destroy: ->
-    atom.workspaceView.removeClass('debugger')
-    atom.workspaceView.removeClass('debugger--show-breakpoints')
+    workspaceView = atom.views.getView(atom.workspace)
+    workspaceView.classList.remove('debugger')
+    workspaceView.classList.remove('debugger--show-breakpoints')
     @localCommandMap = null
     @endSession()
     @destroyAllMarkers()
@@ -122,79 +127,53 @@ class DebuggerView extends ScrollView
 
     else
       # otherwise, start a node (--debug-brk) child process current file mode.
-      file = @editorControls.editorPath()
       debug('debug current file', file)
-      
-      debug('creating debug server')
-      @debugServer = new DebugServer()
-      @debugServerClosed = Q.defer()
-      @debugServer.start nodeInspectorConfig
-      @debugServer._httpServer.on "close", =>
-        debug('debug server close')
-        @debugServer._httpServer.removeAllListeners()
-        @debugServer = null
-        @debugServerClosed.resolve()
-        @endSession()
-
-      @childprocess = spawn("node",
-        params = ["--debug-brk=" + nodeInspectorConfig.debugPort, file])
-      debug('spawned child process', 'node'+params.join '')
-
-
-      @childprocess.on 'exit', =>
-        debug('child process exit')
-        @childprocess.removeAllListeners()
-        @childprocess = null
-        @childprocessClosed.resolve()
-        @endSession()
-
-      @childprocess.stderr.once 'data', =>
-        @_connect("ws://localhost:#{nodeInspectorConfig.webPort}/ws")
-        @childprocessClosed = Q.defer()
-
-      @childprocess.stdout.on 'data', (m)=>@console.append("<div>#{m}</div>")
-      @childprocess.stderr.on 'data', (m)=>@console.append("<div>#{m}</div>")
+      file = @editorControls.editorPath()
+      @debugRunner = new DebugRunner(file)
+      @debugRunner.start()
+      @debugRunner.finished.then(=>@endSession())
+      @debugRunner.program.stderr.once 'data', =>
+        @_connect("ws://localhost:#{@debugRunner.config.webPort}/ws")
+      logmessage = (m)=>@console.append("<div>#{m}</div>")
+      @debugRunner.program.stdout.on 'data', logmessage
+      @debugRunner.program.stderr.on 'data', logmessage
 
   endSession: ->
     debug('end session')
     @updateMarkers()
-    @childprocess?.kill()
-    @debugServer?._httpServer?.close()
-    
+    @debugRunner?.kill()
     @status.text('Debugger stopped')
-
-    Q.all([@debugger.close(), @childprocessClosed, @debugServerClosed])
+    # return a promise that resolves when we're all cleaned up.
+    Q.all([@debugger.close(), @debugRunner?.finished ? Q(true)])
 
   pauseLocation: null
   handlePause: (location) ->
     debug('paused', location)
-    atom.workspaceView.addClass('debugger--paused')
+    atom.views.getView(atom.workspace).classList.add('debugger--paused')
     
-    promise = if location.scriptUrl? then Q(location) # resolve immediately.
-    else
-      @pauseDeferred = Q.defer() #resolve if/when script is parsed.
-      @pauseDeferred.promise
+    scriptReady =
+    if location.scriptUrl? then Q(location) # resolve immediately.
+    else (@waitingForScript = Q.defer()).promise #resolve when script is parsed.
     
     @pauseLocation = location
-    promise.then =>
+    scriptReady.then =>
       @editorControls.open(@pauseLocation)
     .done =>
+      @callFrames.empty()
       @status.text("Paused at line #{@pauseLocation.lineNumber} "+
                    "of #{@editorControls.editorPath()}")
-
-      @callFrames.empty()
-      
       return unless @pauseLocation.scriptUrl
-      
+      @updateMarkers()
+
+      # Build the call frame views.
+      # TODO: this should be moved out into its own View.
       frameViews = []
       onExpand = (active) =>
         frameViews.forEach (frameView) ->
           frameView.collapse()  unless frameView is active
-          
         # There's a potential for a race condition here, but it seems unlikely
         # and it's not dire anyway.
         @editorControls.open(active.model.location)
-        
         
       for cf in @debugger.getCallFrames()
         frameViews.push (cfView = new CallFrameView(cf, onExpand))
@@ -202,11 +181,10 @@ class DebuggerView extends ScrollView
       
       frameViews[0]?.expand()
 
-      @updateMarkers()
       
   handleResume: ->
     @pauseLocation = null
-    atom.workspaceView.removeClass('debugger--paused')
+    atom.views.getView(atom.workspace).removeClass('debugger--paused')
     @updateMarkers()
     
   handleScript: (scriptObject) ->
@@ -218,7 +196,7 @@ class DebuggerView extends ScrollView
     else if(@pauseLocation?.scriptId is scriptObject.scriptId and
     not @pauseLocation?.scriptUrl?)
       @pauseLocation.scriptUrl = scriptObject.sourceURL
-      @pauseDeferred?.resolve()
+      @waitingForScript?.resolve()
       
 
   toggleBreakpointAtCurrentLine: ->

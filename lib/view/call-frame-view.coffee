@@ -1,5 +1,5 @@
-{$, $$, Point, ScrollView} = require 'atom'
-
+{$, $$, Point} = require 'atom'
+{ScrollView} = require 'atom-space-pen-views'
 url = require 'url'
 
 RemoteObjectView = require './remote-object-view'

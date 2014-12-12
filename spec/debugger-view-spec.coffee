@@ -1,13 +1,11 @@
 path = require('path')
 url = require('url')
-
+{$} = require('space-pen')
 Q = require('q')
+debug = require('debug')('atom-debugger:view')
 
 {nodeDebug, nodeInspector} = require './spec-helper'
 
-debug = require('debug')('atom-debugger:view')
-
-{WorkspaceView} = require 'atom'
 Debugger = require '../lib/atom-node-debug'
 DebuggerView = require '../lib/view/debugger-view'
 EditorControls = require '../lib/editor-controls'
@@ -26,7 +24,6 @@ describe "DebuggerView", ->
       pathname: scriptPath
       
   beforeEach ->
-    atom.workspaceView = new WorkspaceView
     activationPromise = atom.packages.activatePackage('debugger')
     # need the grammar for callframe / watch syntax highlighting.
     waitsForPromise -> atom.packages.activatePackage('language-javascript')
@@ -50,9 +47,9 @@ describe "DebuggerView", ->
       setup(scriptPath1)
 
       pauseLocation = null
-      runs -> debuggerView.trigger('debugger:step-over')
+      runs -> atom.commands.dispatch debuggerView, 'debugger:step-over'
       waitsFor -> debuggerView.pauseLocation?.lineNumber is 3
-      runs -> debuggerView.trigger('debugger:step-into')
+      runs -> atom.commands.dispatch debuggerView, 'debugger:step-into'
 
       waitsFor ->
         atom.workspace.getActivePaneItem()?.getPath?() isnt scriptPath1
@@ -60,7 +57,7 @@ describe "DebuggerView", ->
       runs ->
         expect(atom.workspace.getActivePaneItem().getPath()).toBe(scriptPath2)
         pauseLocation = debuggerView.pauseLocation
-        debuggerView.trigger('debugger:step-out')
+        atom.commands.dispatch debuggerView, 'debugger:step-out'
 
       waitsFor ->
         (debuggerView.pauseLocation isnt pauseLocation) and
@@ -73,10 +70,10 @@ describe "DebuggerView", ->
   describe 'debugging current file', ->
     setup = (scriptPath) ->
       waitsForPromise ->
-        atom.workspaceView.open(scriptPath)
+        atom.workspace.open(scriptPath)
         .then ->
-          editorView = atom.workspaceView.getActiveView()
-          editorView.trigger('debugger:toggle-debug-session')
+          editorView = atom.views.getView(atom.workspace.getActiveTextEditor())
+          atom.commands.dispatch editorView, 'debugger:toggle-debug-session'
 
       waitsForPromise ->
         activationPromise.then (pack)->pkg=pack
@@ -104,17 +101,19 @@ describe "DebuggerView", ->
           nodeInspectorServer = server
           debuggedProcess = child
         .then ->
-          atom.workspaceView.trigger 'debugger:connect'
+          atom.commands.dispatch atom.views.getView(atom.workspace),
+            'debugger:connect'
   
       waitsForPromise ->
         activationPromise.then (pack)->pkg=pack
   
       waitsFor ->
-        atom.workspaceView.find('.debugger-connect')
+        $(atom.views.getView(atom.workspace)).find('.debugger-connect')
       
       runs ->
         pkg.mainModule.chooseView.miniEditor.setText(wsUrl)
-        atom.workspaceView.trigger 'core:confirm'
+        atom.commands.dispatch atom.views.getView(atom.workspace),
+          'core:confirm'
   
       waitsFor ->
         debuggerView = pkg.mainModule.debuggerView
@@ -129,7 +128,6 @@ describe "DebuggerView", ->
     commonTestSuite(setup)
 
   
-  debug('blah')
   it 'handles pause in unparsed/unknown script', ->
     scriptPath = require.resolve('./fixtures/simple_program.js')
     bugger =

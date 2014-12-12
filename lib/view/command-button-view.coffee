@@ -12,7 +12,7 @@ class CommandButtonView extends View
     [@kb] = atom.keymaps.findKeyBindings(command: @commandName)
     [@command] = (atom.commands
     .findCommands
-      target: atom.workspaceView
+      target: atom.views.getView(atom.workspace)
     .filter (cmd) => cmd.name is @commandName)
     
     [kb,cmd,disp] = [@kb, @commandName, @command?.displayName]

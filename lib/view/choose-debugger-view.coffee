@@ -16,8 +16,9 @@ class ChooseDebuggerView extends View
 
     @miniEditor.setText(state?.text ? '')
 
-    atom.workspaceView.on 'core:confirm', => @confirm()
-    atom.workspaceView.on 'core:cancel', => @cancel()
+    atom.commands.add 'atom-workspace',
+      'core:confirm': => @confirm()
+      'core:cancel': => @cancel()
     @miniEditor.getModel().on 'will-insert-text', ({cancel, text}) ->
       # cancel() unless text.match(/[0-9]/)
       # TODO: validate ws url.
@@ -61,12 +62,12 @@ class ChooseDebuggerView extends View
     if @previouslyFocusedElement?.isOnDom()
       @previouslyFocusedElement.focus()
     else
-      atom.workspaceView.focus()
+      atom.views.getView(atom.workspace).focus()
 
   attach: ->
     if true #TODO: check whether we're already debugging.
       @storeFocusedElement()
-      atom.workspaceView.append(this)
+      $(atom.views.getView(atom.workspace)).append(this)
       @message.html """
       <p>
         Enter the front-end port of a node-inspector or the websocket address of

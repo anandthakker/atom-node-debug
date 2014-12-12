@@ -87,5 +87,5 @@ class EditorControls
     
     @lastEditorPane?.activate?()
     options.initialLine = lineNumber
-    atom.workspaceView.open(scriptPath, options)
+    atom.workspace.open(scriptPath, options)
     .then (@editor)->#just save editor.
