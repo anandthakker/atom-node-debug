@@ -91,8 +91,14 @@ class DebuggerApi extends DebuggerEventHandler
     )
     registerBackendCommands(@backend)
     @backend.registerDebuggerDispatcher(this)
+    @backend.registerConsoleDispatcher(this)
     super
       
+  
+  # Console.messageAdded
+  messageAdded: (args...)->
+    console.log.apply(console, args)
+  
   connect: (wsUrl)->
     debug('attempt to connect', wsUrl)
     ws = new WebSocket(wsUrl)
