@@ -130,13 +130,16 @@ class DebuggerView extends ScrollView
       debug('debug current file', file)
       file = @editorControls.editorPath()
       @debugRunner = new DebugRunner(file)
+      
       @debugRunner.start()
+      .then ({server, program})=>
+        program.stderr.once 'data', =>
+          @_connect("ws://localhost:#{@debugRunner.config.webPort}/ws")
+        logmessage = (m)=>@console.append("<div>#{m}</div>")
+        program.stdout.on 'data', logmessage
+        program.stderr.on 'data', logmessage
+      
       @debugRunner.finished.then(=>@endSession())
-      @debugRunner.program.stderr.once 'data', =>
-        @_connect("ws://localhost:#{@debugRunner.config.webPort}/ws")
-      logmessage = (m)=>@console.append("<div>#{m}</div>")
-      @debugRunner.program.stdout.on 'data', logmessage
-      @debugRunner.program.stderr.on 'data', logmessage
 
   endSession: ->
     debug('end session')
