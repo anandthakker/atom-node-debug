@@ -1,7 +1,7 @@
 {
   "name": "debugger",
   "main": "./lib/atom-node-debug",
-  "version": "0.4.5",
+  "version": "0.4.6",
   "description": "Debug javascript code from right within the editor: set breakpoints, step through code, inspect variable/expression values, etc.",
   "keywords": [
     "node",
@@ -12,9 +12,13 @@
     "web inspector",
     "node-inspector"
   ],
-  "activationCommands":{
-    "atom-workspace": ["debugger:connect"],
-    "atom-text-editor": ["debugger:toggle-debug-session"]
+  "activationCommands": {
+    "atom-workspace": [
+      "debugger:connect"
+    ],
+    "atom-text-editor": [
+      "debugger:toggle-debug-session"
+    ]
   },
   "repository": "https://github.com/anandthakker/atom-node-debug",
   "license": "MIT",
