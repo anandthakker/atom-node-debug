@@ -1,3 +1,9 @@
+
+# DEPRECATED
+
+This package is no longer under active development.  Please see this very similar (and active) one: https://github.com/kiddkai/atom-node-debugger  (atom package: https://atom.io/packages/node-debugger)
+
+
 # Atom debugger package
 
 Debug javascript code from right within the editor: set breakpoints, step through code,
