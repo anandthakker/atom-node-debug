@@ -7,10 +7,10 @@
 
 # For more detailed documentation see
 # https://atom.io/docs/latest/advanced/keymaps
-'.workspace':
+'atom-workspace':
   'ctrl-alt-cmd-i': 'debugger:connect'
 
-'.editor':
+'atom-text-editor':
   'ctrl-alt-i': 'debugger:toggle-debug-session'
   'ctrl-alt-cmd-b': 'debugger:toggle-breakpoint'
   
